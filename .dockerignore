@@ -1,0 +1,19 @@
+# Git
+.gitignore
+.git/
+
+# IntelliJ IDEA
+.idea/
+*.idea
+
+# VS Code
+*.vscode
+
+# Development
+dist/
+node_modules/
+aws/
+.aws-sam/
+env*
+events/
+*.log

@@ -1,0 +1,33 @@
+const assert = require('chai').assert;
+const TnItsConverter = require('../../dist/conversion/tn-its/tnits_converter').TnItsConverter;
+const AssetTypes = require('../../dist/conversion/tn-its/helper/asset_types').AssetTypes;
+
+const empty_dataset = '<RoadFeatureDataset xmlns="http://spec.tn-its.eu/schemas/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:schemaLocation="http://spec.tn-its.eu/schemas/ http://spec.tn-its.eu/schemas/TNITS.xsd"><metadata><Metadata><datasetId>test</datasetId><datasetCreationTime>2022-01-01T00:00:00.000Z</datasetCreationTime></Metadata></metadata><type>Update</type><roadFeatures/></RoadFeatureDataset>';
+const dataset1 = '<RoadFeatureDataset xmlns="http://spec.tn-its.eu/schemas/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:schemaLocation="http://spec.tn-its.eu/schemas/ http://spec.tn-its.eu/schemas/TNITS.xsd"><metadata><Metadata><datasetId>test</datasetId><datasetCreationTime>2022-01-01T00:00:00.000Z</datasetCreationTime></Metadata></metadata><type>Update</type><roadFeatures><RoadFeature><validFrom>2022-01-01</validFrom><beginLifespanVersion>2022-01-01T00:00:00.000Z</beginLifespanVersion><updateInfo><UpdateInfo><type>Add</type></UpdateInfo></updateInfo><source xlink:href="http://spec.tn-its.eu/codelists/RoadFeatureSourceCode#regulation" xlink:title="regulation"/><type xlink:href="http://spec.tn-its.eu/codelists/RoadFeatureTypeCode#speedLimit" xlink:title="speedLimit"/><properties><GenericRoadFeatureProperty><type xlink:href="http://spec.tn-its.eu/codelists/RoadFeaturePropertyTypeCode#maximumSpeedLimit" xlink:title="maximumSpeedLimit"/><value>30</value><valueReference xlink:href="http://spec.tn-its.eu/codelists/UOMIdentifierCode#kph" xlink:title="kph"/></GenericRoadFeatureProperty></properties><id><RoadFeatureId><providerId>FI.LiVi.OTH</providerId><id>68715744</id></RoadFeatureId></id><locationReference><OpenLRLocationReference><binaryLocationReference><BinaryLocationReference><base64String>CxGQ1SxUmiuiBQD/AQ0rEQ==</base64String><openLRBinaryVersion xlink:href="http://spec.tn-its.eu/codelists/OpenLRBinaryVersionCode#v2_4" xlink:title="v2_4"/></BinaryLocationReference></binaryLocationReference></OpenLRLocationReference></locationReference><locationReference><GeometryLocationReference><encodedGeometry><gml:LineString gml:id="ID-FOO" srsDimension="2" srsName="EPSG:4326"><gml:posList>24.70182344993451 62.33972732583103 24.70224646018838 62.34017533541493 24.70289796583275 62.340842966934844 24.7034588080214 62.341403858495205 24.70373790892014 62.34170901758705 24.704146273470773 62.34214919049838 24.704377357026267 62.34241445435835</gml:posList></gml:LineString></encodedGeometry></GeometryLocationReference></locationReference></RoadFeature></roadFeatures><roadFeatures><RoadFeature><validFrom>2022-01-01</validFrom><beginLifespanVersion>2022-01-01T00:00:00.000Z</beginLifespanVersion><updateInfo><UpdateInfo><type>Add</type></UpdateInfo></updateInfo><source xlink:href="http://spec.tn-its.eu/codelists/RoadFeatureSourceCode#regulation" xlink:title="regulation"/><type xlink:href="http://spec.tn-its.eu/codelists/RoadFeatureTypeCode#speedLimit" xlink:title="speedLimit"/><properties><GenericRoadFeatureProperty><type xlink:href="http://spec.tn-its.eu/codelists/RoadFeaturePropertyTypeCode#maximumSpeedLimit" xlink:title="maximumSpeedLimit"/><value>30</value><valueReference xlink:href="http://spec.tn-its.eu/codelists/UOMIdentifierCode#kph" xlink:title="kph"/></GenericRoadFeatureProperty></properties><id><RoadFeatureId><providerId>FI.LiVi.OTH</providerId><id>68715744</id></RoadFeatureId></id><locationReference><OpenLRLocationReference><binaryLocationReference><BinaryLocationReference><base64String>CxGRTCxVGCuxBf8B/vMrAg==</base64String><openLRBinaryVersion xlink:href="http://spec.tn-its.eu/codelists/OpenLRBinaryVersionCode#v2_4" xlink:title="v2_4"/></BinaryLocationReference></binaryLocationReference></OpenLRLocationReference></locationReference><locationReference><GeometryLocationReference><encodedGeometry><gml:LineString gml:id="ID-FOO" srsDimension="2" srsName="EPSG:4326"><gml:posList>24.70182344993451 62.33972732583103 24.70224646018838 62.34017533541493 24.70289796583275 62.340842966934844 24.7034588080214 62.341403858495205 24.70373790892014 62.34170901758705 24.704146273470773 62.34214919049838 24.704377357026267 62.34241445435835</gml:posList></gml:LineString></encodedGeometry></GeometryLocationReference></locationReference></RoadFeature></roadFeatures></RoadFeatureDataset>';
+
+describe('Converter: Create data set', function() {
+    const datasetId = "test";
+    const endTime = '2022-01-01T00:00:00.000Z';
+
+    it('Simple conversion without changes', function() {
+        const conversion1 = new TnItsConverter([], datasetId, endTime).datasetAsXML();
+        
+        assert.typeOf(conversion1, 'string');
+        assert.equal(conversion1, empty_dataset);
+    });
+
+    it('Conversion with changes', function() {
+        const change1 = {
+            assetType: AssetTypes.find(x => x.id === "speed_limits"),
+            features: [{"type":"Feature","id":68715744,"geometry":{"type":"LineString","coordinates":[[380988.385,6914141.499,132.68300000000454],[381012.057,6914190.609,130.71300000000338],[381048.426,6914263.755,129.7320000000036],[381079.678,6914325.182,129.69100000000617],[381095.333,6914358.65,129.84500000000116],[381118.213,6914406.915,130.1429999999964],[381131.2239424657,6914436.028871259,130.61199792608735]]},"properties":{"startMeasure":0.0,"changeType":"Add","sideCode":1,"link":{"type":"Feature","id":11072482,"geometry":{"type":"LineString","coordinates":[[380988.385,6914141.499,132.68300000000454],[381012.057,6914190.609,130.71300000000338],[381048.426,6914263.755,129.7320000000036],[381079.678,6914325.182,129.69100000000617],[381095.333,6914358.65,129.84500000000116],[381118.213,6914406.915,130.1429999999964],[381131.224,6914436.029,130.6119999999937]]},"properties":{"functionalClass":6,"type":3,"length":327.3771410125601}},"createdAt":"13.04.2021 16:19:00","createdBy":"test","endMeasure":327.377,"value":30}}]
+        };
+        const conversion1 = new TnItsConverter([change1], datasetId, endTime).datasetAsXML();
+        
+        assert.typeOf(conversion1, 'string');
+        assert.equal(normalize(conversion1), dataset1);
+    });
+});
+
+function normalize(xmlString) {
+    return xmlString.replace( new RegExp('gml:id="[^"]+?"', 'g'), 'gml:id="ID-FOO"');
+}

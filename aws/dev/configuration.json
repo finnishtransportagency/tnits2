@@ -1,0 +1,12 @@
+{
+    "Parameters": {
+        "ApplicationName": "tnits2",
+        "Environment": "dev",
+        "OrganizationPrefix": "vaylapilvi",
+        "ECRRepository": "tnits2",
+        "ECRImageTag": "latest",
+        "DigiroadAPI": "https://devapi.testivaylapilvi.fi/digiroad/externalApi/changes/",
+        "APIKeyPath": "/tnits2/dev/apikey",
+        "TnItsAPI": "/download/readDataSet?dataSetID="
+    }
+}

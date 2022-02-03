@@ -1,0 +1,13 @@
+# IntelliJ IDEA
+.idea/
+*.idea
+
+# VS Code
+*.vscode
+
+# Development
+node_modules/
+dist/
+.aws-sam/
+env*
+*.log

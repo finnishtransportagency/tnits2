@@ -1,0 +1,365 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Template for TN-ITS2 dev cicd"
+
+Parameters:
+  PipelineName:
+    Description: "Pipeline name, no capital letter"
+    Type: String
+  ResourceStackName:
+    Description: Name of environment specific resources cloudformation stack
+    Type: String
+  EcrRepositoryName:
+    Description: "Name of ECR repository"
+    Type: String
+    AllowedPattern: "^[a-z0-9]+$"
+  CodeBuildImage:
+    Description: "Image used for CodeBuild project."
+    Type: String
+  GitRepoName:
+    Description: "The Git repo name"
+    Type: String
+  GitRepoBranch:
+    Description: "The Git repo branch that pipeline should watch for changes"
+    Type: String
+
+Resources:
+
+  CodePipelineArtifactStoreBucket:
+    Type: 'AWS::S3::Bucket'
+    Description: "Amazon S3 bucket for AWS CodePipeline artifacts"
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "${PipelineName}-artifact-store-bucket"
+
+  CodePipelineArtifactStoreBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref CodePipelineArtifactStoreBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: DenyUnEncryptedObjectUploads
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:PutObject'
+            Resource: !Sub "${CodePipelineArtifactStoreBucket.Arn}/*"
+            Condition:
+              StringNotEquals:
+                s3:x-amz-server-side-encryption: 'aws:kms'
+          - Sid: DenyInsecureConnections
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: !Sub "${CodePipelineArtifactStoreBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  AppPipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Description: "Deployment pipeline for tnits2 dev environment"
+    Properties:
+      Name: !Ref PipelineName
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref CodePipelineArtifactStoreBucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: source
+              ActionTypeId:
+                Version: "1"
+                Category: Source
+                Owner: AWS
+                Provider: CodeCommit
+              OutputArtifacts:
+              - Name: SourceOutput
+              Configuration:
+                RepositoryName: !Ref GitRepoName
+                BranchName: !Ref GitRepoBranch
+                PollForSourceChanges: false
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: BuildAction
+              InputArtifacts:
+                - Name: SourceOutput
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              OutputArtifacts:
+                - Name: BuildOutput
+              Configuration:
+                ProjectName: !Ref CodeBuild
+              RunOrder: 1
+        - Name: Deploy
+          Actions:
+          - Name: deploy
+            InputArtifacts:
+            - Name: BuildOutput
+            ActionTypeId:
+              Category: Deploy
+              Owner: AWS
+              Version: "1"
+              Provider: CloudFormation
+            Configuration:
+              StackName: !Ref ResourceStackName
+              ActionMode: CHANGE_SET_REPLACE
+              RoleArn: !GetAtt CloudformationRole.Arn
+              ChangeSetName: !Sub "${ResourceStackName}-changeset"
+              Capabilities: CAPABILITY_NAMED_IAM
+              TemplatePath: BuildOutput::tnits_template.yaml
+              ParameterOverrides: |
+                {"ECRImageTag": {"Fn::GetParam": ["BuildOutput", "parameter-overrides.json", "ECRImageTag"]}}
+              TemplateConfiguration: BuildOutput::configuration.json
+            RunOrder: 1
+          - Name: execute-changeset
+            ActionTypeId:
+              Category: Deploy
+              Owner: AWS
+              Version: "1"
+              Provider: CloudFormation
+            Configuration:
+              StackName: !Ref ResourceStackName
+              ActionMode: CHANGE_SET_EXECUTE
+              ChangeSetName: !Sub "${ResourceStackName}-changeset"
+            RunOrder: 2
+
+  CodePipelineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub "${PipelineName}-codepipeline-role"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: !Sub "${PipelineName}-codepipeline-policy"
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codecommit:GetBranch'
+                  - 'codecommit:GetCommit'
+                  - 'codecommit:GetRepository'
+                  - 'codecommit:UploadArchive'
+                  - 'codecommit:GetUploadArchiveStatus'
+                  - 'codecommit:CancelUploadArchive'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'codebuild:BatchGetBuilds'
+                  - 'codebuild:StartBuild'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource: '*'
+                Condition:
+                  StringEqualsIfExists:
+                    iam:PassedToService: cloudformation.amazonaws.com
+              - Effect: Allow
+                Action:
+                  - 'cloudwatch:*'
+                  - 's3:*'
+                  - 'cloudformation:*'
+                Resource: '*'
+
+  CloudformationRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub "${PipelineName}-cloudformation-role"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: !Sub "${PipelineName}-cloudformation-policy"
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - "logs:*"
+                Resource: "arn:aws:logs:*:*:*"
+                Effect: Allow
+              - Action:
+                  - 'sqs:*'
+                  - 'apigateway:*'
+                  - 'lambda:*'
+                  - 'cloudformation:CreateChangeSet'
+                  - 'iam:PassRole'
+                  - 'ssm:GetParameter'
+                  - 'ssm:GetParameters'
+                  - 'ssm:GetParametersByPath'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 'events:DescribeRule'
+                  - 'events:PutRule'
+                  - 'events:PutTargets'
+                  - 'events:RemoveTargets'
+                  - 'events:DeleteRule'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 's3:GetObject'
+                  - 's3:GetObjectVersion'
+                  - "s3:PutObject"
+                  - 's3:CreateBucket'
+                  - 's3:DeleteBucket'
+                  - 's3:PutBucketPolicy'
+                  - 's3:GetBucketPolicy'
+                  - 's3:DeleteBucketPolicy'
+                  - 's3:PutBucketPublicAccessBlock'
+                  - 's3:GetBucketPublicAccessBlock'
+                  - 's3:PutBucketNotification'
+                  - 's3:GetBucketNotification'
+                Resource: 'arn:aws:s3:::*'
+                Effect: Allow
+              - Action:
+                  - 'iam:GetRole'
+                  - 'iam:CreateRole'
+                  - 'iam:DeleteRole'
+                  - 'iam:PutRolePolicy'
+                  - 'iam:AttachRolePolicy'
+                  - 'iam:DeleteRolePolicy'
+                  - 'iam:DetachRolePolicy'
+                  - 'iam:UpdateAssumeRolePolicy'
+                Resource:
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/*'
+                Effect: Allow
+              - Action:
+                  - 'codedeploy:CreateDeploymentGroup'
+                  - 'codedeploy:CreateDeployment'
+                  - 'codedeploy:GetDeployment'
+                  - 'codedeploy:GetDeploymentConfig'
+                Resource:
+                  - !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:*'
+                Effect: Allow
+
+  CodeBuild:
+    DependsOn:
+      - CodeBuildRole
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub "${PipelineName}-build"
+      Description: "Codebuild project for tnits2 dev environment"
+      ServiceRole: !Ref CodeBuildRole
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: "aws/dev/cicd/buildspec.yml"
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: !Ref CodeBuildImage
+        Type: LINUX_CONTAINER
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: ECR_REPOSITORY_NAME
+            Value: !Ref EcrRepositoryName
+          - Name: ECR_REPOSITORY_URI
+            Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepositoryName}"
+          - Name: AWS_REGION
+            Value: !Ref AWS::Region
+          - Name: AWS_ACCOUNT_ID
+            Value: !Ref AWS::AccountId
+      Artifacts:
+        Name: !Ref PipelineName
+        Type: CODEPIPELINE
+
+  CodeBuildRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Path: /
+      RoleName: !Sub "${PipelineName}-codebuild-role"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "codebuild.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: !Sub "${PipelineName}-codebuild-policy"
+          PolicyDocument:
+            Statement:
+              - Effect: "Allow"
+                Resource: "*"
+                Action:
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:InitiateLayerUpload"
+                  - "ecr:CompleteLayerUpload"
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:PutImage"
+                  - "ecr:UploadLayerPart"
+              - Effect: "Allow"
+                Resource: "*"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+              - Effect: "Allow"
+                Resource: !Sub "arn:aws:s3:::${CodePipelineArtifactStoreBucket}/*"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectVersion"
+                  - "s3:PutObject"
+  
+  CloudWatchEventRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub "${PipelineName}-cloudwatch-role"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: cloudwatch-event-pipeline-execution
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: codepipeline:StartPipelineExecution
+                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${AppPipeline}"
+
+  CloudWatchEventRule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      Name: !Sub "${PipelineName}-cloudwatch-event-rule"
+      Description: Automatically start pipeline when a change occurs in the AWS CodeCommit source repository branch.
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type: 
+          - 'CodeCommit Repository State Change'
+        resources:
+          - !Sub "arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${GitRepoName}"
+        detail:
+          event:
+            - referenceCreated
+            - referenceUpdated
+          referenceType:
+            - branch
+          referenceName:
+            - !Ref GitRepoBranch
+      Targets:
+        - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${AppPipeline}"
+          RoleArn: !GetAtt CloudWatchEventRole.Arn
+          Id: !Sub "${PipelineName}-event-target"

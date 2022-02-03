@@ -1,0 +1,4 @@
+<!-- Reference local TN-ITS standard schemas -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://spec.tn-its.eu/schemas/">
+    <xs:include schemaLocation="spec.tn-its.eu/schemas/TNITS.xsd"/>
+</xs:schema>

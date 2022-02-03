@@ -1,0 +1,9 @@
+<schema xmlns="http://www.w3.org/2001/XMLSchema" xmlns:tnits="http://spec.tn-its.eu/schemas/" elementFormDefault="qualified" targetNamespace="http://spec.tn-its.eu/schemas/" version="2018-01">
+  <include schemaLocation="Conditions.xsd"/>
+  <include schemaLocation="Dataset.xsd"/>
+  <include schemaLocation="Feedback.xsd"/>
+  <include schemaLocation="LocationReferencing.xsd"/>
+  <include schemaLocation="Metadata.xsd"/>
+  <include schemaLocation="RoadFeatures.xsd"/>
+  <include schemaLocation="Update.xsd"/>
+</schema>

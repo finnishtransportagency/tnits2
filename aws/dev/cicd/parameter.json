@@ -1,0 +1,27 @@
+
+[
+    {
+        "ParameterKey": "PipelineName",
+        "ParameterValue": "tnits2-dev-pipeline"
+    },
+    {
+        "ParameterKey": "ResourceStackName",
+        "ParameterValue": "tnits2-dev-resources"
+    },
+    {
+        "ParameterKey": "EcrRepositoryName",
+        "ParameterValue": "tnits2"
+    },
+    {
+        "ParameterKey": "CodeBuildImage",
+        "ParameterValue": "aws/codebuild/standard:5.0"
+    },
+    {
+        "ParameterKey": "GitRepoName",
+        "ParameterValue": "tnits2"
+    },
+    {
+        "ParameterKey": "GitRepoBranch",
+        "ParameterValue": "master"
+    }
+]

@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: TN-ITS lambdas for local testing purposes
+
+Resources:
+  ConversionLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda for converting change data to xml dataset
+      MemorySize: 128
+      Timeout: 15
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - conversion/index.handler
+      Environment:
+        Variables:
+          S3_BUCKET: ""
+          S3_BUCKET_VALID: ""
+          DIGIROAD_API: ""
+          DIGIROAD_API_KEY: ""
+    Metadata:
+      DockerTag: nodejs14.x-v1
+      DockerContext: ../../
+      Dockerfile: Dockerfile
+
+  DataSetValidationLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda for listing validating generated TN-ITS dataset against xml schema
+      MemorySize: 128
+      Timeout: 15
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - dataset-validation/index.handler
+      Environment:
+        Variables:
+          S3_BUCKET_INCOMING: ""
+          S3_BUCKET_VALID: ""
+    Metadata:
+      DockerTag: nodejs14.x-v1
+      DockerContext: ../../
+      Dockerfile: Dockerfile
+
+  ListDataSetsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda for listing TN-ITS xml datasets
+      MemorySize: 128
+      Timeout: 15
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - list-datasets/index.handler
+      Environment:
+        Variables:
+          READ_DATASET_URL: "/download/readDataSet?dataSetID="
+          S3_BUCKET: ""
+    Metadata:
+      DockerTag: nodejs14.x-v1
+      DockerContext: ../../
+      Dockerfile: Dockerfile
+
+  ReadDataSetLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda for reading individual TN-ITS xml datasets
+      MemorySize: 128
+      Timeout: 15
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - read-dataset/index.handler
+      Environment:
+        Variables:
+          S3_BUCKET: ""
+    Metadata:
+      DockerTag: nodejs14.x-v1
+      DockerContext: ../../
+      Dockerfile: Dockerfile

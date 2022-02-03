@@ -1,0 +1,531 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: TN-ITS resources that are used by lambdas.
+
+Parameters:
+  ApplicationName:
+    Description: Name of the application
+    Type: String
+  Environment:
+    Description: Environment where resources are created "dev", "qa" or "prod"
+    Type: String
+    AllowedValues: ["dev", "qa", "prod"]
+  OrganizationPrefix:
+    Description: Prefix for organization
+    Type: String
+  ECRRepository:
+    Type: String
+    Description: Name of ECR repository
+  ECRImageTag:
+    Type: String
+    Description: ECR image tag name
+  DigiroadAPI:
+    Type: String
+    Description: Digiroad change api url
+  APIKeyPath:
+    Type: String
+    Description: Common path for API keys stored in ssm
+  TnItsAPI:
+    Type: String
+    Description: TN-ITS API url
+
+Conditions:
+  IsDev:
+    "Fn::Equals":
+      - !Ref Environment
+      - dev
+  IsProd:
+    "Fn::Equals":
+      - !Ref Environment
+      -  prod
+      
+Resources:
+
+  # S3
+  XmlStoreBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-xml-store-bucket
+      ObjectLockEnabled: false
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  
+  XmlStoreBucketNotValidated:
+    Type: AWS::S3::Bucket
+    DependsOn: DataSetValidationLambdaPermission
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket
+      ObjectLockEnabled: false
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: 's3:ObjectCreated:Put'
+            Function: !GetAtt DataSetValidationLambda.Arn
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn:
+      - ConversionLambdaRole
+      - DataSetValidationLambdaRole
+      - ListDataSetsLambdaRole
+      - ReadDataSetLambdaRole
+    Properties:
+      Bucket: !Ref XmlStoreBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ConversionLambdaPolicy
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt ConversionLambdaRole.Arn
+            Action:
+              - s3:ListBucket
+            Resource: !GetAtt XmlStoreBucket.Arn
+          - Sid: ValidationLambdaPolicy
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt DataSetValidationLambdaRole.Arn
+            Action:
+              - s3:PutObject
+              - s3:PutObjectTagging
+            Resource: !Join ['', [!GetAtt XmlStoreBucket.Arn, '/*']]
+          - Sid: ListDatasetsLambdaPolicy
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt ListDataSetsLambdaRole.Arn
+            Action:
+              - s3:ListBucket
+            Resource: !GetAtt XmlStoreBucket.Arn
+          - Sid: ReadDatasetLambdaPolicy
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt ReadDataSetLambdaRole.Arn
+            Action:
+              - s3:GetObject
+            Resource: !Join ['', [!GetAtt XmlStoreBucket.Arn, '/*']]
+  
+  S3BucketPolicyNotValidated:
+    Type: AWS::S3::BucketPolicy
+    DependsOn:
+      - ConversionLambdaRole
+      - DataSetValidationLambdaRole
+    Properties:
+      Bucket: !Ref XmlStoreBucketNotValidated
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ConversionLambdaPolicy
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt ConversionLambdaRole.Arn
+            Action: 
+              - 's3:PutObject'
+            Resource: !Sub
+              - ${BucketArn}/*
+              - BucketArn: !GetAtt XmlStoreBucketNotValidated.Arn
+          - Sid: ValidationLambdaPolicy
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt DataSetValidationLambdaRole.Arn
+            Action:
+              - 's3:GetObject'
+              - 's3:GetObjectTagging'
+              - 's3:DeleteObject'
+            Resource: !Sub
+              - ${BucketArn}/*
+              - BucketArn: !GetAtt XmlStoreBucketNotValidated.Arn
+  
+  # API Gateway
+
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub ${Environment}-${ApplicationName}-ApiGateway
+      Description: "API for TN-ITS"
+      ApiKeySourceType: HEADER
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+  
+  ApiGwRequestValidator:
+    Type: AWS::ApiGateway::RequestValidator
+    Properties:
+      Name: !Sub ${Environment}-${ApplicationName}-ApiGateway-RequestValidator
+      RestApiId: !Ref ApiGateway
+      ValidateRequestBody: false
+      ValidateRequestParameters: true
+  
+  ApiGwResourceDownload:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      PathPart: "download"
+      RestApiId: !Ref ApiGateway
+      ParentId: !GetAtt ApiGateway.RootResourceId
+
+  ApiGwResourceQueryDataSets:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      PathPart: "queryDataSets"
+      RestApiId: !Ref ApiGateway
+      ParentId: !Ref ApiGwResourceDownload
+
+  ApiGwResourceReadDataSet:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      PathPart: "readDataSet"
+      RestApiId: !Ref ApiGateway
+      ParentId: !Ref ApiGwResourceDownload
+      
+  ApiGwMethodQueryDataSets:
+    DependsOn: ListDatasetsLambdaPermission
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId: !Ref ApiGwResourceQueryDataSets
+      RestApiId: !Ref ApiGateway
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt ListDataSetsLambda.Arn
+      RequestValidatorId: !Ref ApiGwRequestValidator
+      RequestParameters:
+        method.request.querystring.lastValidDataSetID: false
+
+  ApiGwMethodReadDataSets:
+    DependsOn: ReadDataSetLambdaPermission
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      HttpMethod: GET
+      ResourceId: !Ref ApiGwResourceReadDataSet
+      RestApiId: !Ref ApiGateway
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt ReadDataSetLambda.Arn
+      RequestValidatorId: !Ref ApiGwRequestValidator
+      RequestParameters:
+        method.request.querystring.dataSetID: true
+
+  # Lambdas
+
+  ConversionLambda:
+    DependsOn: ConversionLambdaRole
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: !Sub "${Environment}-${ApplicationName}-dataset-conversion"
+      Description: Lambda for converting change data to xml dataset
+      MemorySize: 256
+      Timeout: 900
+      Role: !GetAtt ConversionLambdaRole.Arn
+      PackageType: Image
+      Code:
+        ImageUri: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}:${ECRImageTag}
+      ImageConfig:
+        Command:
+          - conversion/index.handler
+      Environment:
+        Variables:
+          S3_BUCKET: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket
+          S3_BUCKET_VALID: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-xml-store-bucket
+          DIGIROAD_API: !Ref DigiroadAPI
+          DIGIROAD_API_KEY: !Sub ${APIKeyPath}/digiroad
+
+  DataSetValidationLambda:
+    DependsOn: DataSetValidationLambdaRole
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: !Sub "${Environment}-${ApplicationName}-dataset-validation"
+      Description: Lambda for listing validating generated TN-ITS dataset against xml schema
+      MemorySize: 256
+      Timeout: 900
+      Role: !GetAtt DataSetValidationLambdaRole.Arn
+      PackageType: Image
+      Code:
+        ImageUri: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}:${ECRImageTag}
+      ImageConfig:
+        Command:
+          - dataset-validation/index.handler
+      Environment:
+        Variables:
+          S3_BUCKET_INCOMING: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket
+          S3_BUCKET_VALID: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-xml-store-bucket
+
+  ListDataSetsLambda:
+    DependsOn: ListDataSetsLambdaRole
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: !Sub "${Environment}-${ApplicationName}-list-datasets"
+      Description: Lambda for listing TN-ITS xml datasets
+      MemorySize: 128
+      Timeout: 25
+      Role: !GetAtt ListDataSetsLambdaRole.Arn
+      PackageType: Image
+      Code:
+        ImageUri: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}:${ECRImageTag}
+      ImageConfig:
+        Command:
+          - list-datasets/index.handler
+      Environment:
+        Variables:
+          READ_DATASET_URL: !Ref TnItsAPI
+          S3_BUCKET: !Ref XmlStoreBucket
+
+  ReadDataSetLambda:
+    DependsOn: ReadDataSetLambdaRole
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: !Sub "${Environment}-${ApplicationName}-read-dataset"
+      Description: Lambda for reading individual TN-ITS xml datasets
+      MemorySize: 128
+      Timeout: 25
+      Role: !GetAtt ReadDataSetLambdaRole.Arn
+      PackageType: Image
+      Code:
+        ImageUri: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}:${ECRImageTag}
+      ImageConfig:
+        Command:
+          - read-dataset/index.handler
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref XmlStoreBucket
+
+  # Event to start conversion
+  
+  StartConversionEvent:
+    Type: AWS::Events::Rule
+    Properties: 
+      Name: !Sub "${Environment}-${ApplicationName}-conversion-event"
+      Description: "Scheduled event to start conversion process"
+      ScheduleExpression: cron(0 1 * * ? *)
+      State: !If [IsProd, "ENABLED", "DISABLED"]
+      Targets: 
+        - Arn: !GetAtt ConversionLambda.Arn
+          Id: !Sub "${Environment}-${ApplicationName}-conversion-event-target"
+
+  # Lambda permissions
+
+  ConversionLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt ConversionLambda.Arn
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt StartConversionEvent.Arn
+
+  DataSetValidationLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt DataSetValidationLambda.Arn
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !Sub arn:aws:s3:::${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket
+
+  ListDatasetsLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt ListDataSetsLambda.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGW}/*
+        - ApiGW: !Ref ApiGateway
+
+  ReadDataSetLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt ReadDataSetLambda.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGW}/*
+        - ApiGW: !Ref ApiGateway
+
+  # Lambda roles
+
+  ConversionLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${Environment}-${ApplicationName}-Conversion-lambda-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+          - !If 
+            - IsDev
+            - Effect: Allow
+              Principal:
+                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/DigiroadOthAdmin"
+              Action: sts:AssumeRole
+            - !Ref AWS::NoValue
+      Policies:
+        - PolicyName: PutS3ObjectToBucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub arn:aws:s3:::${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket
+        - PolicyName: ListS3BucketObjects
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !Sub arn:aws:s3:::${Environment}-${OrganizationPrefix}-${ApplicationName}-xml-store-bucket
+        - PolicyName: FetchParameterFromSSM
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter*
+                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${APIKeyPath}*
+
+  DataSetValidationLambdaRole:
+    Type: AWS::IAM::Role
+    DependsOn: XmlStoreBucket
+    Properties:
+      RoleName: !Sub ${Environment}-${ApplicationName}-DataSetValidation-lambda-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+          - !If 
+            - IsDev
+            - Effect: Allow
+              Principal:
+                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/DigiroadOthAdmin"
+              Action: sts:AssumeRole
+            - !Ref AWS::NoValue
+      Policies:
+        - PolicyName: S3NotValidatedBucketActions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectTagging
+                  - s3:DeleteObject
+                Resource: !Sub arn:aws:s3:::${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket
+        - PolicyName: S3ValidBucketActions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:PutObjectTagging
+                Resource: !Join ['', [!GetAtt XmlStoreBucket.Arn, '/*']]
+
+  ListDataSetsLambdaRole:
+    Type: AWS::IAM::Role
+    DependsOn: XmlStoreBucket
+    Properties:
+      RoleName: !Sub ${Environment}-${ApplicationName}-ListDataSets-lambda-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+          - !If 
+            - IsDev
+            - Effect: Allow
+              Principal:
+                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/DigiroadOthAdmin"
+              Action: sts:AssumeRole
+            - !Ref AWS::NoValue
+      Policies:
+        - PolicyName: ListS3BucketObjects
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !GetAtt XmlStoreBucket.Arn
+
+  ReadDataSetLambdaRole:
+    Type: AWS::IAM::Role
+    DependsOn: XmlStoreBucket
+    Properties:
+      RoleName: !Sub ${Environment}-${ApplicationName}-ReadDataSet-lambda-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+          - !If 
+            - IsDev
+            - Effect: Allow
+              Principal:
+                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/DigiroadOthAdmin"
+              Action: sts:AssumeRole
+            - !Ref AWS::NoValue
+      Policies:
+        - PolicyName: ReadS3BucketObject
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Join ['', [!GetAtt XmlStoreBucket.Arn, '/*']]
+
+  CloudWatchAccessPolicy:
+    Type: AWS::IAM::Policy
+    DependsOn:
+      - ConversionLambdaRole
+      - DataSetValidationLambdaRole
+      - ListDataSetsLambdaRole
+      - ReadDataSetLambdaRole
+    Properties:
+      PolicyName: !Sub ${Environment}-${ApplicationName}-CloudWatchAccessPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: '*'
+      Roles:
+        - !Ref ConversionLambdaRole
+        - !Ref DataSetValidationLambdaRole
+        - !Ref ListDataSetsLambdaRole
+        - !Ref ReadDataSetLambdaRole
+        
