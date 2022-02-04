@@ -3,36 +3,44 @@ Description: "Template for TN-ITS2 dev cicd"
 
 Parameters:
   PipelineName:
-    Description: "Pipeline name, no capital letter"
+    Description: Pipeline name, no capital letter
     Type: String
   ResourceStackName:
     Description: Name of environment specific resources cloudformation stack
     Type: String
   EcrRepositoryName:
-    Description: "Name of ECR repository"
+    Description: Name of ECR repository
     Type: String
     AllowedPattern: "^[a-z0-9]+$"
   CodeBuildImage:
-    Description: "Image used for CodeBuild project."
+    Description: Image used for CodeBuild project
     Type: String
   GitRepoName:
-    Description: "The Git repo name"
+    Description: The Git repository name
     Type: String
-  GitRepoBranch:
-    Description: "The Git repo branch that pipeline should watch for changes"
+  GitBranchName:
+    Description: The Git branch name that pipeline should watch for changes
     Type: String
+  GitHubOwner:
+    Description: The Git repository owner
+    Type: String
+  GitHubWebhookSecret:
+    Description: Personal access token that is needed to access the webhook of CodePipeline
+    Type: String
+    NoEcho: true
+    MinLength: 20
 
 Resources:
 
   CodePipelineArtifactStoreBucket:
-    Type: 'AWS::S3::Bucket'
+    Type: AWS::S3::Bucket
     Description: "Amazon S3 bucket for AWS CodePipeline artifacts"
     DeletionPolicy: Retain
     Properties:
       BucketName: !Sub "${PipelineName}-artifact-store-bucket"
 
   CodePipelineArtifactStoreBucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
+    Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref CodePipelineArtifactStoreBucket
       PolicyDocument:
@@ -55,8 +63,24 @@ Resources:
               Bool:
                 aws:SecureTransport: false
 
+  AppPipelineWebhook:
+    Type: AWS::CodePipeline::Webhook
+    Properties:
+      Authentication: GITHUB_HMAC
+      AuthenticationConfiguration:
+        SecretToken: !Ref GitHubWebhookSecret
+      Filters:
+        - JsonPath: $.ref
+          MatchEquals: 'refs/heads/{Branch}'
+      TargetPipeline: !Ref AppPipeline
+      TargetAction: SourceAction
+      Name: !Sub "${PipelineName}-webhook"
+      TargetPipelineVersion: !GetAtt AppPipeline.Version
+      RegisterWithThirdParty: true
+
+
   AppPipeline:
-    Type: 'AWS::CodePipeline::Pipeline'
+    Type: AWS::CodePipeline::Pipeline
     Description: "Deployment pipeline for tnits2 dev environment"
     Properties:
       Name: !Ref PipelineName
@@ -67,17 +91,19 @@ Resources:
       Stages:
         - Name: Source
           Actions:
-            - Name: source
+            - Name: SourceAction
               ActionTypeId:
-                Version: "1"
+                Version: 1
                 Category: Source
-                Owner: AWS
-                Provider: CodeCommit
+                Owner: ThirdParty
+                Provider: GitHub
               OutputArtifacts:
               - Name: SourceOutput
               Configuration:
-                RepositoryName: !Ref GitRepoName
-                BranchName: !Ref GitRepoBranch
+                Owner: !Ref GitHubOwner
+                Repo: !Ref GitRepoName
+                Branch: !Ref GitBranchName
+                OAuthToken: !Ref GitHubWebhookSecret
                 PollForSourceChanges: false
               RunOrder: 1
         - Name: Build
@@ -129,7 +155,7 @@ Resources:
             RunOrder: 2
 
   CodePipelineRole:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${PipelineName}-codepipeline-role"
       AssumeRolePolicyDocument:
@@ -174,7 +200,7 @@ Resources:
                 Resource: '*'
 
   CloudformationRole:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${PipelineName}-cloudformation-role"
       AssumeRolePolicyDocument:
@@ -277,7 +303,7 @@ Resources:
         Type: CODEPIPELINE
 
   CodeBuildRole:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       Path: /
       RoleName: !Sub "${PipelineName}-codebuild-role"
@@ -313,50 +339,3 @@ Resources:
                   - s3:GetObject
                   - s3:GetObjectVersion
                   - s3:PutObject
-  
-  CloudWatchEventRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      RoleName: !Sub "${PipelineName}-cloudwatch-role"
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - events.amazonaws.com
-            Action: sts:AssumeRole
-      Path: /
-      Policies:
-        - PolicyName: cloudwatch-event-pipeline-execution
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action: codepipeline:StartPipelineExecution
-                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${AppPipeline}"
-
-  CloudWatchEventRule:
-    Type: 'AWS::Events::Rule'
-    Properties:
-      Name: !Sub "${PipelineName}-cloudwatch-event-rule"
-      Description: Automatically start pipeline when a change occurs in the AWS CodeCommit source repository branch.
-      EventPattern:
-        source:
-          - aws.codecommit
-        detail-type: 
-          - 'CodeCommit Repository State Change'
-        resources:
-          - !Sub "arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${GitRepoName}"
-        detail:
-          event:
-            - referenceCreated
-            - referenceUpdated
-          referenceType:
-            - branch
-          referenceName:
-            - !Ref GitRepoBranch
-      Targets:
-        - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${AppPipeline}"
-          RoleArn: !GetAtt CloudWatchEventRole.Arn
-          Id: !Sub "${PipelineName}-event-target"
