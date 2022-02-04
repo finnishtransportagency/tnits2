@@ -55,7 +55,7 @@ Resources:
           - list-datasets/index.handler
       Environment:
         Variables:
-          READ_DATASET_URL: "/download/readDataSet?dataSetID="
+          READ_DATASET_URL: "placeholder"
           S3_BUCKET: ""
     Metadata:
       DockerTag: nodejs14.x-v1

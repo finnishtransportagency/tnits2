@@ -1,5 +1,7 @@
 import { j2xParser as Parser } from "fast-xml-parser";
 
+const path = "/download/readDataSet?dataSetID=";
+
 export class DatasetLister {
     RestDatasetRefList: DatasetRefList
 
@@ -17,7 +19,7 @@ export class DatasetLister {
             console.error(`Cannot form reference url without baseUrl`);
         } else {
             for (const key of objectKeys) {
-                const ref = { $: { 'xlink:href': `${baseUrl}${key}` } };
+                const ref = { $: { 'xlink:href': `${baseUrl}${path}${key}` } };
                 this.RestDatasetRefList.RestDatasetRef.push(ref);
             }
         }
