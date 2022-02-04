@@ -41,7 +41,7 @@ Resources:
           - Sid: DenyUnEncryptedObjectUploads
             Effect: Deny
             Principal: '*'
-            Action: 's3:PutObject'
+            Action: s3:PutObject
             Resource: !Sub "${CodePipelineArtifactStoreBucket.Arn}/*"
             Condition:
               StringNotEquals:
@@ -49,7 +49,7 @@ Resources:
           - Sid: DenyInsecureConnections
             Effect: Deny
             Principal: '*'
-            Action: 's3:*'
+            Action: s3:*
             Resource: !Sub "${CodePipelineArtifactStoreBucket.Arn}/*"
             Condition:
               Bool:
@@ -111,7 +111,7 @@ Resources:
               RoleArn: !GetAtt CloudformationRole.Arn
               ChangeSetName: !Sub "${ResourceStackName}-changeset"
               Capabilities: CAPABILITY_NAMED_IAM
-              TemplatePath: BuildOutput::tnits_template.yaml
+              TemplatePath: BuildOutput::tnits-template.yaml
               ParameterOverrides: |
                 {"ECRImageTag": {"Fn::GetParam": ["BuildOutput", "parameter-overrides.json", "ECRImageTag"]}}
               TemplateConfiguration: BuildOutput::configuration.json
@@ -147,30 +147,30 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - 'codecommit:GetBranch'
-                  - 'codecommit:GetCommit'
-                  - 'codecommit:GetRepository'
-                  - 'codecommit:UploadArchive'
-                  - 'codecommit:GetUploadArchiveStatus'
-                  - 'codecommit:CancelUploadArchive'
+                  - codecommit:GetBranch
+                  - codecommit:GetCommit
+                  - codecommit:GetRepository
+                  - codecommit:UploadArchive
+                  - codecommit:GetUploadArchiveStatus
+                  - codecommit:CancelUploadArchive
                 Resource: '*'
               - Effect: Allow
                 Action:
-                  - 'codebuild:BatchGetBuilds'
-                  - 'codebuild:StartBuild'
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
                 Resource: '*'
               - Effect: Allow
                 Action:
-                  - 'iam:PassRole'
+                  - iam:PassRole
                 Resource: '*'
                 Condition:
                   StringEqualsIfExists:
                     iam:PassedToService: cloudformation.amazonaws.com
               - Effect: Allow
                 Action:
-                  - 'cloudwatch:*'
-                  - 's3:*'
-                  - 'cloudformation:*'
+                  - cloudwatch:*
+                  - s3:*
+                  - cloudformation:*
                 Resource: '*'
 
   CloudformationRole:
@@ -192,60 +192,57 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Action:
-                  - "logs:*"
+                  - logs:*
                 Resource: "arn:aws:logs:*:*:*"
                 Effect: Allow
               - Action:
-                  - 'sqs:*'
-                  - 'apigateway:*'
-                  - 'lambda:*'
-                  - 'cloudformation:CreateChangeSet'
-                  - 'iam:PassRole'
-                  - 'ssm:GetParameter'
-                  - 'ssm:GetParameters'
-                  - 'ssm:GetParametersByPath'
+                  - apigateway:*
+                  - lambda:*
+                  - cloudformation:CreateChangeSet
+                  - iam:PassRole
+                  - ssm:GetParameter*
                 Resource: '*'
                 Effect: Allow
               - Action:
-                  - 'events:DescribeRule'
-                  - 'events:PutRule'
-                  - 'events:PutTargets'
-                  - 'events:RemoveTargets'
-                  - 'events:DeleteRule'
+                  - events:DescribeRule
+                  - events:PutRule
+                  - events:PutTargets
+                  - events:RemoveTargets
+                  - events:DeleteRule
                 Resource: '*'
                 Effect: Allow
               - Action:
-                  - 's3:GetObject'
-                  - 's3:GetObjectVersion'
-                  - "s3:PutObject"
-                  - 's3:CreateBucket'
-                  - 's3:DeleteBucket'
-                  - 's3:PutBucketPolicy'
-                  - 's3:GetBucketPolicy'
-                  - 's3:DeleteBucketPolicy'
-                  - 's3:PutBucketPublicAccessBlock'
-                  - 's3:GetBucketPublicAccessBlock'
-                  - 's3:PutBucketNotification'
-                  - 's3:GetBucketNotification'
+                  - s3:CreateBucket
+                  - s3:DeleteBucket
+                  - s3:PutBucketPolicy
+                  - s3:GetBucketPolicy
+                  - s3:DeleteBucketPolicy
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                  - s3:PutBucketPublicAccessBlock
+                  - s3:GetBucketPublicAccessBlock
+                  - s3:PutBucketNotification
+                  - s3:GetBucketNotification
                 Resource: 'arn:aws:s3:::*'
                 Effect: Allow
               - Action:
-                  - 'iam:GetRole'
-                  - 'iam:CreateRole'
-                  - 'iam:DeleteRole'
-                  - 'iam:PutRolePolicy'
-                  - 'iam:AttachRolePolicy'
-                  - 'iam:DeleteRolePolicy'
-                  - 'iam:DetachRolePolicy'
-                  - 'iam:UpdateAssumeRolePolicy'
+                  - iam:GetRole
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:PutRolePolicy
+                  - iam:AttachRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:UpdateAssumeRolePolicy
                 Resource:
                   - !Sub 'arn:aws:iam::${AWS::AccountId}:role/*'
                 Effect: Allow
               - Action:
-                  - 'codedeploy:CreateDeploymentGroup'
-                  - 'codedeploy:CreateDeployment'
-                  - 'codedeploy:GetDeployment'
-                  - 'codedeploy:GetDeploymentConfig'
+                  - codedeploy:CreateDeploymentGroup
+                  - codedeploy:CreateDeployment
+                  - codedeploy:GetDeployment
+                  - codedeploy:GetDeploymentConfig
                 Resource:
                   - !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:*'
                 Effect: Allow
@@ -290,7 +287,7 @@ Resources:
             Principal:
               Service: "codebuild.amazonaws.com"
             Action:
-              - "sts:AssumeRole"
+              - sts:AssumeRole
       Policies:
         - PolicyName: !Sub "${PipelineName}-codebuild-policy"
           PolicyDocument:
@@ -298,24 +295,24 @@ Resources:
               - Effect: "Allow"
                 Resource: "*"
                 Action:
-                  - "ecr:BatchCheckLayerAvailability"
-                  - "ecr:InitiateLayerUpload"
-                  - "ecr:CompleteLayerUpload"
-                  - "ecr:GetAuthorizationToken"
-                  - "ecr:PutImage"
-                  - "ecr:UploadLayerPart"
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:InitiateLayerUpload
+                  - ecr:CompleteLayerUpload
+                  - ecr:GetAuthorizationToken
+                  - ecr:PutImage
+                  - ecr:UploadLayerPart
               - Effect: "Allow"
                 Resource: "*"
                 Action:
-                  - "logs:CreateLogGroup"
-                  - "logs:CreateLogStream"
-                  - "logs:PutLogEvents"
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
               - Effect: "Allow"
                 Resource: !Sub "arn:aws:s3:::${CodePipelineArtifactStoreBucket}/*"
                 Action:
-                  - "s3:GetObject"
-                  - "s3:GetObjectVersion"
-                  - "s3:PutObject"
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
   
   CloudWatchEventRole:
     Type: 'AWS::IAM::Role'

@@ -24,7 +24,7 @@ phases:
 
 artifacts:
   files:
-    - aws/tnits_template.yaml
+    - aws/tnits-template.yaml
     - aws/dev/configuration.json
     - parameter-overrides.json
   discard-paths: yes
