@@ -2,6 +2,9 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "Template for TN-ITS2 dev cicd"
 
 Parameters:
+  ApplicationName:
+    Description: Name of the application as specified in resource stack
+    Type: String
   PipelineName:
     Description: Pipeline name, no capital letter
     Type: String
@@ -173,18 +176,9 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - codecommit:GetBranch
-                  - codecommit:GetCommit
-                  - codecommit:GetRepository
-                  - codecommit:UploadArchive
-                  - codecommit:GetUploadArchiveStatus
-                  - codecommit:CancelUploadArchive
-                Resource: '*'
-              - Effect: Allow
-                Action:
                   - codebuild:BatchGetBuilds
                   - codebuild:StartBuild
-                Resource: '*'
+                Resource: !GetAtt CodeBuild.Arn
               - Effect: Allow
                 Action:
                   - iam:PassRole
@@ -219,15 +213,13 @@ Resources:
             Statement:
               - Action:
                   - logs:*
-                Resource: "arn:aws:logs:*:*:*"
-                Effect: Allow
-              - Action:
                   - apigateway:*
                   - lambda:*
-                  - cloudformation:CreateChangeSet
-                  - iam:PassRole
-                  - ssm:GetParameter*
                 Resource: '*'
+                Effect: Allow
+              - Action:
+                  - cloudformation:CreateChangeSet
+                Resource: !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${ResourceStackName}/*'
                 Effect: Allow
               - Action:
                   - events:DescribeRule
@@ -235,7 +227,7 @@ Resources:
                   - events:PutTargets
                   - events:RemoveTargets
                   - events:DeleteRule
-                Resource: '*'
+                Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/dev-${ApplicationName}-*'
                 Effect: Allow
               - Action:
                   - s3:CreateBucket
@@ -243,16 +235,14 @@ Resources:
                   - s3:PutBucketPolicy
                   - s3:GetBucketPolicy
                   - s3:DeleteBucketPolicy
-                  - s3:GetObject
-                  - s3:GetObjectVersion
-                  - s3:PutObject
                   - s3:PutBucketPublicAccessBlock
                   - s3:GetBucketPublicAccessBlock
                   - s3:PutBucketNotification
                   - s3:GetBucketNotification
-                Resource: 'arn:aws:s3:::*'
+                Resource: !Sub 'arn:aws:s3:::dev-vaylapilvi-${ApplicationName}-*'
                 Effect: Allow
               - Action:
+                  - iam:PassRole
                   - iam:GetRole
                   - iam:CreateRole
                   - iam:DeleteRole
@@ -261,8 +251,7 @@ Resources:
                   - iam:DeleteRolePolicy
                   - iam:DetachRolePolicy
                   - iam:UpdateAssumeRolePolicy
-                Resource:
-                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/*'
+                Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/dev-${ApplicationName}-*'
                 Effect: Allow
               - Action:
                   - codedeploy:CreateDeploymentGroup
@@ -270,7 +259,8 @@ Resources:
                   - codedeploy:GetDeployment
                   - codedeploy:GetDeploymentConfig
                 Resource:
-                  - !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:*'
+                  - !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:*'
+                  - !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:*'
                 Effect: Allow
 
   CodeBuild:
@@ -321,10 +311,13 @@ Resources:
               - Effect: "Allow"
                 Resource: "*"
                 Action:
+                  - ecr:GetAuthorizationToken
+              - Effect: "Allow"
+                Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepositoryName}*"
+                Action:
                   - ecr:BatchCheckLayerAvailability
                   - ecr:InitiateLayerUpload
                   - ecr:CompleteLayerUpload
-                  - ecr:GetAuthorizationToken
                   - ecr:PutImage
                   - ecr:UploadLayerPart
               - Effect: "Allow"

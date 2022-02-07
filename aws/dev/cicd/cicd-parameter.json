@@ -1,5 +1,9 @@
 [
     {
+        "ParameterKey": "ApplicationName",
+        "ParameterValue": "tnits2"
+    },
+    {
         "ParameterKey": "PipelineName",
         "ParameterValue": "tnits2-dev-pipeline"
     },

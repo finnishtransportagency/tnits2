@@ -389,7 +389,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:PutObject
-                Resource: !Sub arn:aws:s3:::${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket
+                Resource: !Sub arn:aws:s3:::${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket/*
         - PolicyName: ListS3BucketObjects
           PolicyDocument:
             Version: "2012-10-17"
@@ -436,7 +436,7 @@ Resources:
                   - s3:GetObject
                   - s3:GetObjectTagging
                   - s3:DeleteObject
-                Resource: !Sub arn:aws:s3:::${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket
+                Resource: !Sub arn:aws:s3:::${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket/*
         - PolicyName: S3ValidBucketActions
           PolicyDocument:
             Version: "2012-10-17"
