@@ -168,6 +168,22 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${ApplicationName}-${Environment}-api-gateway
+
+  APIGatewayProdDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Condition: IsProd
+    DependsOn:
+      - ApiGwMethodQueryDataSets
+      - ApiGwMethodReadDataSets
+    Properties: 
+      RestApiId: !Ref ApiGateway
+      Description: Deployment of TN-ITS API
+      StageName: public
+      StageDescription: 
+        Description: Published stage of TN-ITS API
+        Tags: 
+          - Key: Name
+            Value: !Sub ${ApplicationName}-${Environment}-api-gateway-stage
   
   ApiGwRequestValidator:
     Type: AWS::ApiGateway::RequestValidator
