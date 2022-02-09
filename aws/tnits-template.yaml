@@ -3,10 +3,10 @@ Description: TN-ITS resources that are used by lambdas.
 
 Parameters:
   ApplicationName:
-    Description: Name of the application
+    Description: Name of the application. Used when tagging the resources
     Type: String
   Environment:
-    Description: Environment where resources are created "dev", "qa" or "prod"
+    Description: Environment where resources are created. Used when tagging the resources
     Type: String
     AllowedValues: ["dev", "qa", "prod"]
   OrganizationPrefix:
@@ -52,6 +52,9 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-s3-valid
   
   XmlStoreBucketNotValidated:
     Type: AWS::S3::Bucket
@@ -69,6 +72,10 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-s3-not-validated
+
 
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -153,11 +160,14 @@ Resources:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: !Sub ${Environment}-${ApplicationName}-ApiGateway
-      Description: "API for TN-ITS"
+      Description: API for TN-ITS
       ApiKeySourceType: HEADER
       EndpointConfiguration:
         Types:
           - REGIONAL
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-api-gateway
   
   ApiGwRequestValidator:
     Type: AWS::ApiGateway::RequestValidator
@@ -249,6 +259,9 @@ Resources:
           S3_BUCKET_VALID: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-xml-store-bucket
           DIGIROAD_API: !Ref DigiroadAPI
           DIGIROAD_API_KEY: !Sub ${APIKeyPath}/digiroad
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-lambda-conversion
 
   DataSetValidationLambda:
     DependsOn: DataSetValidationLambdaRole
@@ -269,6 +282,9 @@ Resources:
         Variables:
           S3_BUCKET_INCOMING: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket
           S3_BUCKET_VALID: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-xml-store-bucket
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-lambda-validation
 
   ListDataSetsLambda:
     DependsOn: ListDataSetsLambdaRole
@@ -289,6 +305,9 @@ Resources:
         Variables:
           READ_DATASET_URL: !Ref TnItsAPI
           S3_BUCKET: !Ref XmlStoreBucket
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-lambda-list-datasets
 
   ReadDataSetLambda:
     DependsOn: ReadDataSetLambdaRole
@@ -308,6 +327,9 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET: !Ref XmlStoreBucket
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-lambda-read-dataset
 
   # Event to start conversion
   
@@ -406,6 +428,9 @@ Resources:
                 Action:
                   - ssm:GetParameter*
                 Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${APIKeyPath}*
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-role-conversion
 
   DataSetValidationLambdaRole:
     Type: AWS::IAM::Role
@@ -446,6 +471,9 @@ Resources:
                   - s3:PutObject
                   - s3:PutObjectTagging
                 Resource: !Join ['', [!GetAtt XmlStoreBucket.Arn, '/*']]
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-role-validation
 
   ListDataSetsLambdaRole:
     Type: AWS::IAM::Role
@@ -475,6 +503,9 @@ Resources:
                 Action:
                   - s3:ListBucket
                 Resource: !GetAtt XmlStoreBucket.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-role-list-datasets
 
   ReadDataSetLambdaRole:
     Type: AWS::IAM::Role
@@ -504,6 +535,9 @@ Resources:
                 Action:
                   - s3:GetObject
                 Resource: !Join ['', [!GetAtt XmlStoreBucket.Arn, '/*']]
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-role-read-dataset
 
   CloudWatchAccessPolicy:
     Type: AWS::IAM::Policy

@@ -41,6 +41,9 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       BucketName: !Sub "${PipelineName}-artifact-store-bucket"
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-dev-pipeline-artifact-bucket
 
   CodePipelineArtifactStoreBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -80,7 +83,6 @@ Resources:
       Name: !Sub "${PipelineName}-webhook"
       TargetPipelineVersion: !GetAtt AppPipeline.Version
       RegisterWithThirdParty: true
-
 
   AppPipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -156,6 +158,9 @@ Resources:
               ActionMode: CHANGE_SET_EXECUTE
               ChangeSetName: !Sub "${ResourceStackName}-changeset"
             RunOrder: 2
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-dev-pipeline
 
   CodePipelineRole:
     Type: AWS::IAM::Role
@@ -192,6 +197,9 @@ Resources:
                   - s3:*
                   - cloudformation:*
                 Resource: '*'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-dev-pipeline-role
 
   CloudformationRole:
     Type: AWS::IAM::Role
@@ -239,6 +247,9 @@ Resources:
                   - s3:GetBucketPublicAccessBlock
                   - s3:PutBucketNotification
                   - s3:GetBucketNotification
+                  - s3:GetBucketTagging
+                  - s3:PutBucketTagging
+                  - s3:DeleteBucketTagging
                 Resource: !Sub 'arn:aws:s3:::dev-vaylapilvi-${ApplicationName}-*'
                 Effect: Allow
               - Action:
@@ -251,6 +262,9 @@ Resources:
                   - iam:DeleteRolePolicy
                   - iam:DetachRolePolicy
                   - iam:UpdateAssumeRolePolicy
+                  - iam:ListRoleTags
+                  - iam:TagRole
+                  - iam:UntagRole
                 Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/dev-${ApplicationName}-*'
                 Effect: Allow
               - Action:
@@ -262,6 +276,9 @@ Resources:
                   - !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:*'
                   - !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:*'
                 Effect: Allow
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-dev-pipeline-cloudformation-role
 
   CodeBuild:
     DependsOn:
@@ -291,6 +308,9 @@ Resources:
       Artifacts:
         Name: !Ref PipelineName
         Type: CODEPIPELINE
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-dev-pipeline-build-project
 
   CodeBuildRole:
     Type: AWS::IAM::Role
@@ -332,3 +352,6 @@ Resources:
                   - s3:GetObject
                   - s3:GetObjectVersion
                   - s3:PutObject
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-dev-pipeline-build-role
