@@ -8,9 +8,10 @@ export class DatasetLister {
     constructor(objectKeys: string[]) {
         this.RestDatasetRefList = {
             $: {
-                'xmlns':        'http://spec.tn-its.eu/api/',
+                'xmlns':        'http://www.ptvag.com/tnits/dataexchange/rest',
                 'xmlns:xsi':    'http://www.w3.org/2001/XMLSchema-instance',
-                'xmlns:xlink':  'http://www.w3.org/1999/xlink'
+                'xmlns:xlink':  'http://www.w3.org/1999/xlink',
+                'xsi:schemaLocation': "http://www.ptvag.com/tnits/dataexchange/rest http://spec.tn-its.eu/api/TN-ITS.xsd"
             },
             RestDatasetRef: []
         };
