@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation managed SecureString Parameters for TN-ITS
+
+Parameters:
+  ApplicationName:
+    Description: "Name of the application, that these resources are created for. Used when naming the resources"
+    Type: String
+  Environment:
+    Description: "Environment of the application, that these resources are created for. Used when naming the resources"
+    Type: String
+    AllowedValues: ["dev", "qa", "prod"]
+
+Resources:
+  DigiroadApiKey:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${ApplicationName}/${Environment}/apikey/digiroad"
+      Type: String
+      Value: PlaceHolderValue
+      Description: API key for Digiroad's production API
+      Tags:
+        Name: !Sub ${ApplicationName}-${Environment}-ssm-apikey-digiroad

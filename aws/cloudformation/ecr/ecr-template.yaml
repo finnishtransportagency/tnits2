@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Elastic Container Repository template for TN-ITS PROD environment
+
+Parameters:
+  ApplicationName:
+    Description: Name of the application
+    Type: String
+  Environment:
+    Description: Environment where resources are created "dev", "qa" or "prod"
+    Type: String
+    AllowedValues: ["dev", "qa", "prod"]
+  DevAdminAccountArn:
+    Description: ARN of dev admin account
+    Type: String
+  CodeBuildServiceRoleArn:
+    Description: ARN of codebuild service role that pushes image.
+    Type: String
+
+Resources:
+  ECRDigiroad:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: tnits2
+      ImageScanningConfiguration:
+        ScanOnPush: TRUE
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowCrossAccountPush
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Ref DevAdminAccountArn
+                - !Ref CodeBuildServiceRoleArn
+            Action:
+              - ecr:BatchCheckLayerAvailability
+              - ecr:CompleteLayerUpload
+              - ecr:InitiateLayerUpload
+              - ecr:PutImage
+              - ecr:UploadLayerPart
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Retain 10 latest images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 10
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-ecr-repo

@@ -1,0 +1,30 @@
+[
+    {
+        "ParameterKey": "ApplicationName",
+        "ParameterValue": "tnits2"
+    },
+    {
+        "ParameterKey": "Environment",
+        "ParameterValue": "prod"
+    },
+    {
+        "ParameterKey": "OrganizationPrefix",
+        "ParameterValue": "vaylapilvi"
+    },
+    {
+        "ParameterKey": "ECRRepository",
+        "ParameterValue": "tnits2"
+    },
+    {
+        "ParameterKey": "ECRImageTag",
+        "ParameterValue": "latest"
+    },
+    {
+        "ParameterKey": "DigiroadAPI",
+        "ParameterValue": "https://api.vaylapilvi.fi/digiroad/externalApi/changes/"
+    },
+    {
+        "ParameterKey": "TnItsAPI",
+        "ParameterValue": "https://avoinapi.vaylapilvi.fi/tnits"
+    }
+]
