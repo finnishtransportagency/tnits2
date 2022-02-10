@@ -178,6 +178,7 @@ Resources:
       StageName: public
       StageDescription: 
         Description: Published stage of TN-ITS API
+        LoggingLevel: INFO
         Tags: 
           - Key: Name
             Value: !Sub ${ApplicationName}-${Environment}-api-gateway-stage
@@ -248,6 +249,25 @@ Resources:
       RequestValidatorId: !Ref ApiGwRequestValidator
       RequestParameters:
         method.request.querystring.dataSetID: true
+
+  # API Gateway role to access CloudWatch logs
+  
+  ApiGatewayLogRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${Environment}-${ApplicationName}-apigateway-log-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-apigateway-log-role
 
   # Lambdas
 

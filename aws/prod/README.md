@@ -61,6 +61,13 @@ aws cloudformation create-stack \
 --capabilities CAPABILITY_NAMED_IAM
 ```
 
+### Salli API Gatewayn lokitus
+*Huom.* Tehdään vain jos alueen API Gatewayille ei ole vielä määritetty CloudWatch lokitus oikeutta. Varmista lisäksi että roolin nimi vastaa tnits-template.yaml:lla luotua (ApiGatewayLogRole)
+```
+aws apigateway update-account \
+--patch-operations op='add',path='/cloudwatchRoleArn',value='arn:aws:iam::[Account_ID]:role/prod-tnits2-apigateway-log-role'
+```
+
 ### Laita konversion ajastus pois päältä
 Disabloi konversio lambdan käynnistävä EventBridge sääntö.
 *Huom.* Varmista että eventin nimi vastaa tnits-template.yaml:lla luotua
