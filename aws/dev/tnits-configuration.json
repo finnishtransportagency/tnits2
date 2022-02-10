@@ -6,7 +6,6 @@
         "ECRRepository": "tnits2",
         "ECRImageTag": "latest",
         "DigiroadAPI": "https://devapi.testivaylapilvi.fi/digiroad/externalApi/changes/",
-        "APIKeyPath": "/tnits2/dev/apikey",
         "TnItsAPI": "placeholder"
     }
 }

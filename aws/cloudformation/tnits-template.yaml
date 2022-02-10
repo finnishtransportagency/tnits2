@@ -21,9 +21,6 @@ Parameters:
   DigiroadAPI:
     Type: String
     Description: Digiroad change api url
-  APIKeyPath:
-    Type: String
-    Description: Common path for API keys stored in ssm
   TnItsAPI:
     Type: String
     Description: TN-ITS API url
@@ -274,7 +271,7 @@ Resources:
           S3_BUCKET: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket
           S3_BUCKET_VALID: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-xml-store-bucket
           DIGIROAD_API: !Ref DigiroadAPI
-          DIGIROAD_API_KEY: !Sub ${APIKeyPath}/digiroad
+          DIGIROAD_API_KEY: !Sub "/${ApplicationName}/${Environment}/apikey/digiroad"
       Tags:
         - Key: Name
           Value: !Sub ${ApplicationName}-${Environment}-lambda-conversion
@@ -443,7 +440,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - ssm:GetParameter*
-                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${APIKeyPath}*
+                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationName}/${Environment}/apikey*
       Tags:
         - Key: Name
           Value: !Sub ${ApplicationName}-${Environment}-role-conversion
