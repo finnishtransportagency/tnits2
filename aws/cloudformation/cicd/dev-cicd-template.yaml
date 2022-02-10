@@ -145,7 +145,7 @@ Resources:
               TemplatePath: BuildOutput::tnits-template.yaml
               ParameterOverrides: |
                 {"ECRImageTag": {"Fn::GetParam": ["BuildOutput", "parameter-overrides.json", "ECRImageTag"]}}
-              TemplateConfiguration: BuildOutput::configuration.json
+              TemplateConfiguration: BuildOutput::tnits-configuration.json
             RunOrder: 1
           - Name: execute-changeset
             ActionTypeId:
