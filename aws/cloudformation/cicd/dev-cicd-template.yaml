@@ -290,7 +290,7 @@ Resources:
       ServiceRole: !Ref CodeBuildRole
       Source:
         Type: CODEPIPELINE
-        BuildSpec: "aws/dev/cicd/buildspec.yml"
+        BuildSpec: "aws/codebuild/dev-buildspec.yml"
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
         Image: !Ref CodeBuildImage
