@@ -166,9 +166,11 @@ Resources:
           Description: Allow all outbound traffic by default
           IpProtocol: '-1'
       SecurityGroupIngress:
-        - CidrIp: 
-            Fn::ImportValue: 
-              !Sub '${NetworkStackName}-VPC-CIDR'
+        - CidrIp: 0.0.0.0/0
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+        - CidrIpv6: ::/0
           FromPort: 443
           IpProtocol: tcp
           ToPort: 443
@@ -177,7 +179,7 @@ Resources:
           !Sub '${NetworkStackName}-VPC-Id'
       Tags:
         - Key: Name
-          Value: !Sub ${ApplicationName}-${Environment}-vpce-security-group'
+          Value: !Sub '${ApplicationName}-${Environment}-vpce-security-group'
 
   VPCEndpoint:
     Type: 'AWS::EC2::VPCEndpoint'
