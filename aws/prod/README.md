@@ -1,5 +1,8 @@
 # TN-ITS tuotanto, pystytys
 
+## VPC
+Tarkista, että tuotantotilille on luotu VPC kahdella subnetillä. Tarkista yhtenevät parametrien nimet, esim. NetworkStackName VPC:n ja CloudFormation parametreistä.
+
 ## Kloonaa repo koneelle
 ```
 git clone https://github.com/finnishtransportagency/tnits2.git
