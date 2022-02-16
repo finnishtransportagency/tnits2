@@ -12,6 +12,9 @@ Parameters:
   OrganizationPrefix:
     Description: Prefix for organization
     Type: String
+  NetworkStackName:
+    Description: Name of network stack
+    Type: String
   ECRRepository:
     Type: String
     Description: Name of ECR repository
@@ -150,7 +153,49 @@ Resources:
             Resource: !Sub
               - ${BucketArn}/*
               - BucketArn: !GetAtt XmlStoreBucketNotValidated.Arn
+
+  # VPC Endpoint
   
+  VpceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub '${ApplicationName}-${Environment}-vpce-security-group'
+      GroupName: !Sub '${ApplicationName}-${Environment}-vpce-security-group'
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        - CidrIp: 
+            Fn::ImportValue: 
+              !Sub '${NetworkStackName}-VPC-CIDR'
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      VpcId:
+        Fn::ImportValue:
+          !Sub '${NetworkStackName}-VPC-Id'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-vpce-security-group'
+
+  VPCEndpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.execute-api' 
+      VpcId:
+        Fn::ImportValue:
+          !Sub '${NetworkStackName}-VPC-Id'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt VpceSecurityGroup.GroupId
+      SubnetIds:
+        - Fn::ImportValue:
+            !Sub '${NetworkStackName}-Subnet1-Id'
+        - Fn::ImportValue:
+            !Sub '${NetworkStackName}-Subnet2-Id'
+      VpcEndpointType: Interface
+
   # API Gateway
 
   ApiGateway:
@@ -161,14 +206,29 @@ Resources:
       ApiKeySourceType: HEADER
       EndpointConfiguration:
         Types:
-          - REGIONAL
+          - PRIVATE
+        VpcEndpointIds:
+          - !Ref VPCEndpoint
+      Policy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: execute-api:Invoke
+            Resource: !Sub "execute-api:/*"
+            Condition:
+              StringNotEquals:
+                aws:sourceVpce: !Ref VPCEndpoint
+          - Effect: Allow
+            Principal: '*'
+            Action: execute-api:Invoke
+            Resource: !Sub "execute-api:/*"
       Tags:
         - Key: Name
           Value: !Sub ${ApplicationName}-${Environment}-api-gateway
 
   APIGatewayProdDeployment:
     Type: AWS::ApiGateway::Deployment
-    Condition: IsProd
     DependsOn:
       - ApiGwMethodQueryDataSets
       - ApiGwMethodReadDataSets

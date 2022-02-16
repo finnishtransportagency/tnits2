@@ -12,6 +12,10 @@
         "ParameterValue": "vaylapilvi"
     },
     {
+        "ParameterKey": "NetworkStackName",
+        "ParameterValue": "Digiroad-prod"
+    },
+    {
         "ParameterKey": "ECRRepository",
         "ParameterValue": "tnits2"
     },
