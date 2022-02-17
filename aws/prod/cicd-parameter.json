@@ -2,5 +2,25 @@
     {
         "ParameterKey": "PipelineName",
         "ParameterValue": "tnits2-prod-pipeline"
+    },
+    {
+        "ParameterKey": "ApplicationName",
+        "ParameterValue": "tnits2"
+    },
+    {
+        "ParameterKey": "EcrRepositoryName",
+        "ParameterValue": "tnits2"
+    },
+    {
+        "ParameterKey": "ProdRepositoryName",
+        "ParameterValue": "tnits2"
+    },
+    {
+        "ParameterKey": "ProdAccountId",
+        "ParameterValue": "920408837790"
+    },
+    {
+        "ParameterKey": "ProdAccountRegion",
+        "ParameterValue": "eu-west-1"
     }
 ]

@@ -5,8 +5,221 @@ Parameters:
   PipelineName:
     Description: Pipeline name, no capital letter
     Type: String
+  ApplicationName:
+    Description: Name of the application as specified in resource stack
+    Type: String
+  EcrRepositoryName:
+    Description: Name of ECR repository
+    Type: String
+    AllowedPattern: "^[a-z0-9]+$"
+  ProdRepositoryName:
+    Description: Name of ECR repository in production account
+    Type: String
+    AllowedPattern: "^[a-z0-9]+$"
+  ProdAccountId:
+    Description: Production account id
+    Type: String
+  ProdAccountRegion:
+    Description: Production account region
+    Type: String
 
 Resources:
+
+  CodePipelineArtifactStoreBucket:
+    Type: AWS::S3::Bucket
+    Description: Amazon S3 bucket for AWS CodePipeline artifacts
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "${PipelineName}-artifact-store-bucket"
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-prod-pipeline-artifact-bucket
+
+  CodePipelineArtifactStoreBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CodePipelineArtifactStoreBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: DenyUnEncryptedObjectUploads
+            Effect: Deny
+            Principal: '*'
+            Action: s3:PutObject
+            Resource: !Sub "${CodePipelineArtifactStoreBucket.Arn}/*"
+            Condition:
+              StringNotEquals:
+                s3:x-amz-server-side-encryption: 'aws:kms'
+          - Sid: DenyInsecureConnections
+            Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource: !Sub "${CodePipelineArtifactStoreBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  AppPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Description: Deployment pipeline for tnits2 prod environment
+    Properties:
+      Name: !Ref PipelineName
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref CodePipelineArtifactStoreBucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Version: 1
+                Provider: ECR
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                RepositoryName: !Ref EcrRepositoryName
+        - Name: Accept
+          Actions:
+            - Name: ApproveImageForProd
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Version: 1
+                Provider: Manual
+        - Name: Build
+          Actions:
+            - Name: BuildAction
+              InputArtifacts:
+                - Name: SourceOutput
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              OutputArtifacts:
+                - Name: BuildOutput
+              Configuration:
+                ProjectName: !Ref CodeBuild
+              RunOrder: 1
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-prod-pipeline
+
+
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${PipelineName}-codepipeline-role"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: !Sub "${PipelineName}-codepipeline-policy"
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource: !GetAtt CodeBuild.Arn
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: '*'
+                Condition:
+                  StringEqualsIfExists:
+                    iam:PassedToService: cloudformation.amazonaws.com
+              - Effect: Allow
+                Action:
+                  - cloudwatch:*
+                  - s3:*
+                  - cloudformation:*
+                Resource: '*'
+              - Effect: Allow
+                Resource: '*'
+                Action:
+                  - ecr:DescribeRepositories
+                  - ecr:ListImages
+                  - ecr:DescribeImages
+                  - ecr:BatchGetImage
+                  - ecr:ListTagsForResource
+                  - ecr:DescribeImageScanFindings
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-prod-pipeline-role
+
+  CodeBuild:
+    DependsOn:
+      - CodeBuildRole
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub "${PipelineName}-build"
+      Description: "Tag image for Prod deployment and push to ECR at prod account"
+      ServiceRole: !Ref CodeBuildRole
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: |
+          version: 0.2
+          phases:
+            pre_build:
+              commands:
+                - echo Logging in to Amazon ECR...
+                - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $PROD_ACCOUNT_ID.dkr.ecr.$PROD_REGION.amazonaws.com
+                - PROD_ID=prod-$CODEBUILD_BUILD_NUMBER
+            build:
+              commands:
+                - echo Build started on `date`
+                - echo Pull latest image...        
+                - docker pull $ECR_REPOSITORY_URI:latest
+                - docker tag $ECR_REPOSITORY_URI:latest $PROD_REPOSITORY_URI:$PROD_ID
+                - docker tag $ECR_REPOSITORY_URI:latest $PROD_REPOSITORY_URI:latest
+                - docker tag $ECR_REPOSITORY_URI:latest $ECR_REPOSITORY_URI:$PROD_ID
+            post_build:
+              commands:
+                - echo Build completed on `date`
+                - echo Pushing Docker images...
+                - docker push $PROD_REPOSITORY_URI:$PROD_ID
+                - docker push $PROD_REPOSITORY_URI:latest
+                - docker push $ECR_REPOSITORY_URI:$PROD_ID
+                - echo Finished on `date`
+                - printf '{"ECRImageTag":"%s"}' $PROD_ID > image-tag.json
+          artifacts:
+            files:
+              - image-tag.json
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+        Type: LINUX_CONTAINER
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: PROD_ACCOUNT_ID
+            Value: !Ref ProdAccountId
+          - Name: ECR_REPOSITORY_URI
+            Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepositoryName}"
+          - Name: PROD_REPOSITORY_URI
+            Value: !Sub "${ProdAccountId}.dkr.ecr.${ProdAccountRegion}.amazonaws.com/${ProdRepositoryName}"
+          - Name: PROD_REGION
+            Value: !Ref ProdAccountRegion
+          - Name: AWS_REGION
+            Value: !Ref AWS::Region
+          - Name: AWS_ACCOUNT_ID
+            Value: !Ref AWS::AccountId
+      Artifacts:
+        Name: !Ref PipelineName
+        Type: CODEPIPELINE
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-dev-pipeline-build-project
 
   CodeBuildRole:
     Type: AWS::IAM::Role
@@ -19,6 +232,47 @@ Resources:
               Service: "codebuild.amazonaws.com"
             Action:
               - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "${PipelineName}-codebuild-policy"
+          PolicyDocument:
+            Statement:
+              - Effect: "Allow"
+                Resource: "*"
+                Action:
+                  - ecr:GetAuthorizationToken
+              - Effect: "Allow"
+                Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepositoryName}*"
+                Action:
+                  - ecr:DescribeRepositories
+                  - ecr:ListImages
+                  - ecr:BatchGetImage
+                  - ecr:ListTagsForResource
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:InitiateLayerUpload
+                  - ecr:CompleteLayerUpload
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:PutImage
+                  - ecr:UploadLayerPart
+              - Effect: "Allow"
+                Resource: !Sub "arn:aws:ecr:${ProdAccountRegion}:${ProdAccountId}:repository/${ProdRepositoryName}*"
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:InitiateLayerUpload
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                  - ecr:UploadLayerPart
+              - Effect: "Allow"
+                Resource: "*"
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+              - Effect: "Allow"
+                Resource: !Sub "arn:aws:s3:::${CodePipelineArtifactStoreBucket}/*"
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
       Tags:
         - Key: Name
           Value: !Sub ${PipelineName}-build-role
