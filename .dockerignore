@@ -12,6 +12,7 @@
 # Development
 dist/
 node_modules/
+schemas/
 aws/
 .aws-sam/
 env*

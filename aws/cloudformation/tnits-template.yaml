@@ -76,6 +76,20 @@ Resources:
         - Key: Name
           Value: !Sub ${ApplicationName}-${Environment}-s3-not-validated
 
+  SchemaStoreBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-schema-store-bucket
+      ObjectLockEnabled: false
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-schema-bucket
 
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -153,6 +167,25 @@ Resources:
             Resource: !Sub
               - ${BucketArn}/*
               - BucketArn: !GetAtt XmlStoreBucketNotValidated.Arn
+
+  SchemaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn:
+      - ApiGatewaySchemaRole
+    Properties:
+      Bucket: !Ref SchemaStoreBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ApiGatewayPolicy
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt ApiGatewaySchemaRole.Arn
+            Action: 
+              - s3:GetObject
+            Resource: !Sub
+              - ${BucketArn}/*
+              - BucketArn: !GetAtt SchemaStoreBucket.Arn
 
   # VPC Endpoint
   
@@ -312,7 +345,69 @@ Resources:
       RequestParameters:
         method.request.querystring.dataSetID: true
 
-  # API Gateway role to access CloudWatch logs
+  ApiGwResourceSchemas:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      PathPart: "schemas"
+      RestApiId: !Ref ApiGateway
+      ParentId: !GetAtt ApiGateway.RootResourceId
+
+  ApiGwResourceSchemasFolder:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      PathPart: "{folder}"
+      RestApiId: !Ref ApiGateway
+      ParentId: !Ref ApiGwResourceSchemas
+
+  ApiGwResourceSchemasFolderItem:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      PathPart: "{item}"
+      RestApiId: !Ref ApiGateway
+      ParentId: !Ref ApiGwResourceSchemasFolder
+
+  ApiGwMethodFetchSchema:
+    DependsOn: ApiGatewaySchemaRole
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId: !Ref ApiGwResourceSchemasFolderItem
+      RestApiId: !Ref ApiGateway
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.path.folder: true
+        method.request.path.item: true
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Content-Length: true
+            method.response.header.Content-Type: true
+        - StatusCode: 400
+        - StatusCode: 500
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: GET
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:s3:path/${Bucket}/{folder}/{item}
+          - Bucket: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-schema-store-bucket
+        Credentials: !GetAtt ApiGatewaySchemaRole.Arn
+        RequestParameters:
+          integration.request.path.folder: method.request.path.folder
+          integration.request.path.item: method.request.path.item
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Content-Length: integration.response.header.Content-Length
+              method.response.header.Content-Type: integration.response.header.Content-Type
+            ResponseTemplates:
+              application/xml: ''
+          - StatusCode: 400
+            SelectionPattern: 4\d{2}
+          - StatusCode: 500
+            SelectionPattern: 5\d{2}
+
+  # API Gateway roles
   
   ApiGatewayLogRole:
     Type: AWS::IAM::Role
@@ -330,6 +425,30 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${ApplicationName}-${Environment}-apigateway-log-role
+
+  ApiGatewaySchemaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${Environment}-${ApplicationName}-apigateway-schema-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3BucketActions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Sub arn:aws:s3:::${Environment}-${OrganizationPrefix}-${ApplicationName}-schema-store-bucket/*
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-apigateway-schema-role
 
   # Lambdas
 

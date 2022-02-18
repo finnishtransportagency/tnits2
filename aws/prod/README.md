@@ -71,6 +71,13 @@ aws apigateway update-account \
 --patch-operations op='add',path='/cloudwatchRoleArn',value='arn:aws:iam::[Account_ID]:role/prod-tnits2-apigateway-log-role'
 ```
 
+### Vie skeemat S3
+*Huom.* Varmista että S3 bucketin nimi vastaa tnits-template.yaml:lla luotua (SchemaStoreBucket)
+```
+aws s3 cp schemas/ s3://prod-vaylapilvi-tnits2-schema-store-bucket/ --recursive
+
+```
+
 ### Laita konversion ajastus pois päältä
 Disabloi konversio lambdan käynnistävä EventBridge sääntö.
 *Huom.* Varmista että eventin nimi vastaa tnits-template.yaml:lla luotua
