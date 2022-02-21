@@ -7,6 +7,7 @@ import { getInstances, AxiosInstances } from './instances';
 const LIMIT_RECORD_NUMBER = 8000;
 
 export async function fetchAllChanges(startTime: string, endTime: string) {
+    console.log(`Fetching changes from ${startTime} to ${endTime}`);
     const instances = await getInstances();
     const results: Array<PromiseSettledResult<AssetTypeChanges>> = await Promise.allSettled(requestAllChanges(startTime, endTime, instances))
     const errors = results.filter(response => response.status === 'rejected') as PromiseRejectedResult[];
