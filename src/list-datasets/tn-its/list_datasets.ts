@@ -6,23 +6,22 @@ export class DatasetLister {
     RestDatasetRefList: DatasetRefList
 
     constructor(objectKeys: string[]) {
+        const baseUrl = process.env.READ_DATASET_URL;
+        if (!baseUrl) {
+            console.error(`Missing required baseUrl`);
+        }
         this.RestDatasetRefList = {
             $: {
                 'xmlns':        'http://www.ptvag.com/tnits/dataexchange/rest',
                 'xmlns:xsi':    'http://www.w3.org/2001/XMLSchema-instance',
                 'xmlns:xlink':  'http://www.w3.org/1999/xlink',
-                'xsi:schemaLocation': "http://www.ptvag.com/tnits/dataexchange/rest http://spec.tn-its.eu/api/TN-ITS.xsd"
+                'xsi:schemaLocation': `http://www.ptvag.com/tnits/dataexchange/rest ${baseUrl}/api/TN-ITS.xsd`
             },
             RestDatasetRef: []
         };
-        const baseUrl = process.env.READ_DATASET_URL;
-        if (!baseUrl) {
-            console.error(`Cannot form reference url without baseUrl`);
-        } else {
-            for (const key of objectKeys) {
-                const ref = { $: { 'xlink:href': `${baseUrl}${path}${key}` } };
-                this.RestDatasetRefList.RestDatasetRef.push(ref);
-            }
+        for (const key of objectKeys) {
+            const ref = { $: { 'xlink:href': `${baseUrl}${path}${key}` } };
+            this.RestDatasetRefList.RestDatasetRef.push(ref);
         }
     }
 
