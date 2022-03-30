@@ -123,3 +123,15 @@ aws cloudformation update-stack \
 --capabilities CAPABILITY_NAMED_IAM
 ```
 Lisää komentoon mukaan *--tags file://aws/prod/tags.json* mikäli halutaan päivittää myös tagit. 
+
+## Tee uusi API Gateway deployment
+```
+ aws apigateway create-deployment --rest-api-id [API Gatewayn id] --region eu-west-1 --stage-name public
+```
+
+### Vie skeemat S3 (tarvittaessa)
+*Huom.* Varmista että S3 bucketin nimi vastaa tnits-template.yaml:lla luotua (SchemaStoreBucket)
+```
+aws s3 cp schemas/ s3://prod-vaylapilvi-tnits2-schema-store-bucket/ --recursive
+
+```
