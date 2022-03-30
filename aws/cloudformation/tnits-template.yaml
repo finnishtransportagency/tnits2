@@ -262,21 +262,31 @@ Resources:
         - Key: Name
           Value: !Sub ${ApplicationName}-${Environment}-api-gateway
 
-  APIGatewayProdDeployment:
+  APIGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
     DependsOn:
       - ApiGwMethodQueryDataSets
       - ApiGwMethodReadDataSets
+      - ApiGwMethodFetchSchema
     Properties: 
       RestApiId: !Ref ApiGateway
       Description: Deployment of TN-ITS API
+  
+  APIGatewayPublicStage:
+    Type: AWS::ApiGateway::Stage
+    DependsOn: APIGatewayDeployment
+    Properties:
+      RestApiId: !Ref ApiGateway
+      DeploymentId: !Ref APIGatewayDeployment
+      Description: Published stage of TN-ITS API
       StageName: public
-      StageDescription: 
-        Description: Published stage of TN-ITS API
-        LoggingLevel: INFO
-        Tags: 
-          - Key: Name
-            Value: !Sub ${ApplicationName}-${Environment}-api-gateway-stage
+      MethodSettings:
+        - ResourcePath: /*
+          HttpMethod: '*'
+          LoggingLevel: INFO
+      Tags: 
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-api-gateway-stage
   
   ApiGwRequestValidator:
     Type: AWS::ApiGateway::RequestValidator
