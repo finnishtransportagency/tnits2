@@ -29,6 +29,6 @@
     },
     {
         "ParameterKey": "TnItsAPI",
-        "ParameterValue": "https://avoinapi.vaylapilvi.fi/tnits"
+        "ParameterValue": "https://avoinapi.vaylapilvi.fi/tnits/public/"
     }
 ]

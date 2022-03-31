@@ -15,7 +15,7 @@ export class DatasetLister {
                 'xmlns':        'http://www.ptvag.com/tnits/dataexchange/rest',
                 'xmlns:xsi':    'http://www.w3.org/2001/XMLSchema-instance',
                 'xmlns:xlink':  'http://www.w3.org/1999/xlink',
-                'xsi:schemaLocation': `http://www.ptvag.com/tnits/dataexchange/rest ${baseUrl}/api/TN-ITS.xsd`
+                'xsi:schemaLocation': `http://www.ptvag.com/tnits/dataexchange/rest ${baseUrl}schemas/api/TN-ITS.xsd`
             },
             RestDatasetRef: []
         };
