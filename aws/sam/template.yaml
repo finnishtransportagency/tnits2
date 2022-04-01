@@ -8,7 +8,7 @@ Resources:
     Properties:
       Description: Lambda for converting change data to xml dataset
       MemorySize: 128
-      Timeout: 15
+      Timeout: 900
       PackageType: Image
       ImageConfig:
         Command:
@@ -29,7 +29,7 @@ Resources:
     Properties:
       Description: Lambda for listing validating generated TN-ITS dataset against xml schema
       MemorySize: 128
-      Timeout: 15
+      Timeout: 900
       PackageType: Image
       ImageConfig:
         Command:
