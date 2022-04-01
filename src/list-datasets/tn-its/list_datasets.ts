@@ -1,6 +1,6 @@
 import { j2xParser as Parser } from "fast-xml-parser";
 
-const path = "/download/readDataSet?dataSetID=";
+const path = "download/readDataSet?dataSetID=";
 
 export class DatasetLister {
     RestDatasetRefList: DatasetRefList
