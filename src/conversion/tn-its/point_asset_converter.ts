@@ -20,13 +20,9 @@ export class PointTnItsConverter extends AssetConverter {
         const functionalClass = link.properties.functionalClass;
         const linkType = link.properties['type'];
 
-        try {
-            return OpenLREncoder.encodeAssetOnLink(
-                properties.mValue, properties.mValue, points, linkLength, functionalClass,
-                linkType, defaultLinkReference + link.id);
-        } catch (err) {
-            throw err;           
-        }
+        return OpenLREncoder.encodeAssetOnLink(
+            properties.mValue, properties.mValue, points, linkLength, functionalClass,
+            linkType, defaultLinkReference + link.id);
     }
 
     properties(assetType: AssetType, feature: PointFeature): RoadFeatureProperties[] {
