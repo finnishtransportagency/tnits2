@@ -17,7 +17,6 @@ export const handler = async ( event: ScheduledEvent ) => {
 
 /**
  * Generates and saves Tn-Its xml files from changes
- * @param changes   Change fetched from providers
  */
  async function generateXmlDataSet(): Promise<string> {
     const startTime = await getNewStartTime(process.env.S3_BUCKET_VALID);
