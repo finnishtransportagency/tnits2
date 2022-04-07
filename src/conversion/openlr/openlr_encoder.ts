@@ -24,8 +24,8 @@ export const OpenLREncoder = {
             if (!openLrBinary) throw new Error(`Could not form OpenLR string`);
             return openLrBinary.toString('base64');
         } catch (err) {
-            console.error(err);
-            throw new Error(`OpenLRException(startMeasure = ${startMeasure}, endMeasure = ${endMeasure}, linkGeometry = ${linkGeometry}, linkLength = ${linkLength}, functionalClass = ${functionalClass}, linkType = ${linkType})`);
+            if (err instanceof Error) console.error(err.message);
+            throw new Error(`OpenLRException(startMeasure = ${startMeasure}, endMeasure = ${endMeasure}, linkId = ${linkId}, linkLength = ${linkLength}, functionalClass = ${functionalClass}, linkType = ${linkType}, linkGeometry = ${JSON.stringify(linkGeometry)})`);
         }
     }
 };
@@ -38,27 +38,23 @@ export const OpenLREncoder = {
  * @returns         Array of location reference points
  */
 function getLocationReferencePoints(line: DigiroadLine, startM: number, endM: number): LocationReferencePoint[] {
-    try {
-        const points = getLocationPoints(line, startM, endM);
-        const lineLocationRefs = [];
+    const points = getLocationPoints(line, startM, endM);
+    const lineLocationRefs = [];
 
-        for (let i = 0; i < points.length; i++) {
-            const point = points[i];
-            const seqNr = i + 1;
+    for (let i = 0; i < points.length; i++) {
+        const point = points[i];
+        const seqNr = i + 1;
 
-            if (i < points.length - 1) {
-                const nextPoint = points[i + 1];
-                const distanceToNext = nextPoint.distanceFromStart - point.distanceFromStart;
-                lineLocationRefs.push(locationReferencePoint(seqNr, point.coordinates, line, distanceToNext, point.distanceFromStart))
-            } else {
-                const distanceFromPrevious = point.distanceFromStart - points[i - 1].distanceFromStart;
-                lineLocationRefs.push(locationReferencePoint(seqNr, point.coordinates, line, 0, distanceFromPrevious, 2, true));
-            }
+        if (i < points.length - 1) {
+            const nextPoint = points[i + 1];
+            const distanceToNext = nextPoint.distanceFromStart - point.distanceFromStart;
+            lineLocationRefs.push(locationReferencePoint(seqNr, point.coordinates, line, distanceToNext, point.distanceFromStart))
+        } else {
+            const distanceFromPrevious = point.distanceFromStart - points[i - 1].distanceFromStart;
+            lineLocationRefs.push(locationReferencePoint(seqNr, point.coordinates, line, 0, distanceFromPrevious, 2, true));
         }
-        return lineLocationRefs;
-    } catch (err) {
-        throw err;
     }
+    return lineLocationRefs;
 }
 
 function locationReferencePoint(seqNr: number, coordinate: GeoCoordinates,
@@ -81,28 +77,19 @@ function locationReferencePoint(seqNr: number, coordinate: GeoCoordinates,
  * @returns         Array of Location Points
  */
 function getLocationPoints(line: DigiroadLine, startM: number, endM: number): Array<LocationPoint> {
-    try {
-        const maxPointDist = 15000;
-        const points = [];
+    const maxPointDist = 15000;
+    const locationPoints = [];
+    let distance = maxPointDist;
 
-        // Adjust point distance to assure that distance is not greater than offset values
-        let distance = maxPointDist > startM ? maxPointDist : Math.floor(startM);
-        distance = distance > endM ? distance : Math.floor(endM);
-
-        points.push(line.getStartNode().getGeoCoordinates());
-        while ( line.getLineLength() > distance + 0.01 ) {
-            points.push(line.getGeoCoordinateAlongLine(distance));
-            distance += maxPointDist;
-        }
-        points.push(line.getEndNode().getGeoCoordinates());
-
-        return points.map(geoCoord => {
-            const distanceFromStart = line.measureAlongLine(geoCoord.getLatitudeDeg(), geoCoord.getLongitudeDeg());
-            return new LocationPoint(geoCoord, distanceFromStart);
-        });
-    } catch (err) {
-        throw err;
+    locationPoints.push(new LocationPoint(line.getStartNode().getGeoCoordinates(), 0));
+    while ( line.getLineLength() > distance + 0.01 ) {
+        const geoCoord = line.getGeoCoordinateAlongLine(distance);
+        const distanceFromStart = line.measureAlongLine(geoCoord.getLatitudeDeg(), geoCoord.getLongitudeDeg());
+        locationPoints.push(new LocationPoint(geoCoord, distanceFromStart));
+        distance = distanceFromStart + maxPointDist;
     }
+    locationPoints.push(new LocationPoint(line.getEndNode().getGeoCoordinates(), line.getLineLength()));
+    return locationPoints;
 }
 
 class LocationPoint {
