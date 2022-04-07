@@ -22,7 +22,7 @@ export class AssetConverter {
                 providerId, feature.id, this.openLrLocationReference(openLR), encodedGeometry, conditions
             );
         } catch (err) {
-            console.error(err);
+            if (err instanceof Error) console.error(err.message);
             throw new Error(`Skipping road feature ${feature.id} due to error in OpenLR encoding.`);
         }
     }
@@ -41,7 +41,7 @@ export class AssetConverter {
             try {
                 roadFeatures.push(this.toRoadFeatures(feature, assetType, validFrom));
             } catch (err) {
-                console.error(err);
+                if (err instanceof Error) console.error(err.message);
             }
         });
         return roadFeatures;
