@@ -63,6 +63,12 @@ Resources:
     Properties:
       BucketName: !Sub ${Environment}-${OrganizationPrefix}-${ApplicationName}-not-validated-xml-bucket
       ObjectLockEnabled: false
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteIncompleteMultipartUploads
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+            Status: Enabled
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: 's3:ObjectCreated:Put'
