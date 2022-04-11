@@ -468,7 +468,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${Environment}-${ApplicationName}-dataset-conversion"
       Description: Lambda for converting change data to xml dataset
-      MemorySize: 256
+      MemorySize: 1024
       Timeout: 900
       Role: !GetAtt ConversionLambdaRole.Arn
       PackageType: Image
@@ -493,7 +493,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${Environment}-${ApplicationName}-dataset-validation"
       Description: Lambda for listing validating generated TN-ITS dataset against xml schema
-      MemorySize: 256
+      MemorySize: 2048
       Timeout: 900
       Role: !GetAtt DataSetValidationLambdaRole.Arn
       PackageType: Image

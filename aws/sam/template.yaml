@@ -7,7 +7,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Description: Lambda for converting change data to xml dataset
-      MemorySize: 128
+      MemorySize: 1024
       Timeout: 900
       PackageType: Image
       ImageConfig:
@@ -28,7 +28,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Description: Lambda for listing validating generated TN-ITS dataset against xml schema
-      MemorySize: 128
+      MemorySize: 2048
       Timeout: 900
       PackageType: Image
       ImageConfig:
