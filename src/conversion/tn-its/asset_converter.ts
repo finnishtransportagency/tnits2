@@ -1,7 +1,7 @@
 import { AssetType } from "./helper/asset_types";
 import { RoadFeatures } from "./helper/road_feature";
 import { Change } from "./helper/interfaces";
-import { codeListRef, CodeListReference } from "./helper/utils";
+import { codeListRef, CodeListReference, localDateTimeToDate } from "./helper/utils";
 import { LocationReference } from "./helper/location_reference";
 import { RoadFeatureProperties } from "./helper/road_feature_properties";
 import { Condition } from "./helper/conditions";
@@ -39,7 +39,20 @@ export class AssetConverter {
         const roadFeatures: RoadFeatures[] = [];
         features.forEach(feature => {
             try {
-                roadFeatures.push(this.toRoadFeatures(feature, assetType, validFrom));
+                const changeType = feature.properties.changeType;
+                let realValidFrom = "";
+                switch (changeType) {
+                    case "Add":
+                        realValidFrom = localDateTimeToDate(feature.properties.createdAt).toISOString();
+                        break;
+                    case "Modify":
+                        realValidFrom = localDateTimeToDate(feature.properties.modifiedAt).toISOString();
+                        break;
+                    case "Remove":
+                    default:
+                        realValidFrom = validFrom;
+                }
+                roadFeatures.push(this.toRoadFeatures(feature, assetType, realValidFrom));
             } catch (err) {
                 if (err instanceof Error) console.error(err.message);
             }
