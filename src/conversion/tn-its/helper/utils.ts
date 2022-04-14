@@ -17,13 +17,18 @@ export const openLrVersion = 'v2_4';
 
 // Convert date string of type DD.MM.YYYY HH:MM:ss to Date
 export const localDateTimeToDate = (dateTimeString: string): Date => {
+    const oldTZ = process.env.TZ;
+    process.env.TZ = "Europe/Helsinki";
     const datePattern = /([0-9]{2}).([0-9]{2}).([0-9]{4}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/;
     const date = dateTimeString.match(/\d+/g);
 
     if (datePattern.test(dateTimeString) && date != undefined) {
-        const vals = date.map(value => parseInt(value))
-        return new Date(vals[2], vals[1] - 1, vals[0], vals[3], vals[4], vals[5]);
+        const vals = date.map(value => parseInt(value));
+        const finnishDate = new Date(vals[2], vals[1] - 1, vals[0], vals[3], vals[4], vals[5]);
+        process.env.TZ = oldTZ;
+        return finnishDate;
     } else {
+        process.env.TZ = oldTZ;
         throw new Error("Unable to match date to pattern")
     }
 }
