@@ -8,14 +8,13 @@ import { Condition } from "./helper/conditions";
 
 export class AssetConverter {
     toRoadFeatures(feature: Change, assetType: AssetType, validFromTime: string): RoadFeatures {
-        const providerId = "FI.LiVi.OTH";
-        const properties = this.properties(assetType, feature);
-        const conditions = this.conditions(assetType, feature, validFromTime);
-        const encodedGeometry = this.encodedGeometry(feature)
-        const sourceRef = new CodeListReference(codeListRef.source, assetType.source);
-        const typeRef = new CodeListReference(codeListRef.type, assetType.featureType);
-        
         try {
+            const providerId = "FI.LiVi.OTH";
+            const properties = this.properties(assetType, feature);
+            const conditions = this.conditions(assetType, feature, validFromTime);
+            const encodedGeometry = this.encodedGeometry(feature)
+            const sourceRef = new CodeListReference(codeListRef.source, assetType.source);
+            const typeRef = new CodeListReference(codeListRef.type, assetType.featureType);
             const openLR = assetType.service.encodeOpenLRLocationString(feature);
             return new RoadFeatures(
                 validFromTime, feature.properties.changeType, sourceRef, typeRef, properties,
@@ -23,7 +22,7 @@ export class AssetConverter {
             );
         } catch (err) {
             if (err instanceof Error) console.error(err.message);
-            throw new Error(`Skipping road feature ${feature.id} due to error in OpenLR encoding.`);
+            throw new Error(`Skipping road feature ${feature.id} due to error in conversion.`);
         }
     }
 

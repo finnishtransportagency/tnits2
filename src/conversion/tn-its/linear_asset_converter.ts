@@ -59,9 +59,8 @@ export class LinearTnItsConverter extends AssetConverter {
                 return vehicleCondition;
             case "vehicle_prohibitions":
                 const conditions = this.vehicleConditions(feature as ProhibitionFeature, validFrom);
-                if (conditions.length < 1) return undefined;
-                else if (conditions.length === 1) {
-                    return conditions[0]
+                if (conditions.length === 1) {
+                    return conditions[0];
                 } else {
                     const setOfSets = new ConditionSet(conditionOperators.or);
                     conditions.forEach(condition => setOfSets.addCondition(condition));
@@ -112,6 +111,9 @@ export class LinearTnItsConverter extends AssetConverter {
                 conditions.push(new Condition().addConditionSet(set));
             }
         });
-        return conditions;
+        if (conditions.length) return conditions;
+        else {
+            throw new Error(`Unrecognized or excluded prohibiton type "${values[0].typeId}" on asset ${feature.id}`);
+        }
     }
 }
