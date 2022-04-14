@@ -4,7 +4,7 @@ export const VehicleProhibitions = {
     getProhibition(typeId: number): Array<Prohibition> {
         const excludedTypes = [15, 23, 26, 27, 28, 21, 22, 12];
         const type = DigiroadProhibitions[typeId];
-        if (excludedTypes.includes(typeId) && type == undefined) {
+        if (excludedTypes.includes(typeId) || type == undefined) {
             return [];
         }
         return type;
