@@ -568,7 +568,7 @@ Resources:
     Properties: 
       Name: !Sub "${Environment}-${ApplicationName}-conversion-event"
       Description: "Scheduled event to start conversion process"
-      ScheduleExpression: cron(0 1 * * ? *)
+      ScheduleExpression: cron(0 22 * * ? *)
       State: !If [IsProd, "ENABLED", "DISABLED"]
       Targets: 
         - Arn: !GetAtt ConversionLambda.Arn
