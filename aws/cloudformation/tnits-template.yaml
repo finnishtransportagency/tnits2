@@ -630,8 +630,11 @@ Resources:
             - IsDev
             - Effect: Allow
               Principal:
-                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/DigiroadOthAdmin"
+                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
               Action: sts:AssumeRole
+              Condition:
+                StringLike:
+                  aws:PrincipalArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-reserved/sso.amazonaws.com/${AWS::Region}/AWSReservedSSO_DigiroadOthAdmin*"
             - !Ref AWS::NoValue
       Policies:
         - PolicyName: PutS3ObjectToBucket
@@ -678,8 +681,11 @@ Resources:
             - IsDev
             - Effect: Allow
               Principal:
-                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/DigiroadOthAdmin"
+                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
               Action: sts:AssumeRole
+              Condition:
+                StringLike:
+                  aws:PrincipalArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-reserved/sso.amazonaws.com/${AWS::Region}/AWSReservedSSO_DigiroadOthAdmin*"
             - !Ref AWS::NoValue
       Policies:
         - PolicyName: S3NotValidatedBucketActions
@@ -721,8 +727,11 @@ Resources:
             - IsDev
             - Effect: Allow
               Principal:
-                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/DigiroadOthAdmin"
+                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
               Action: sts:AssumeRole
+              Condition:
+                StringLike:
+                  aws:PrincipalArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-reserved/sso.amazonaws.com/${AWS::Region}/AWSReservedSSO_DigiroadOthAdmin*"
             - !Ref AWS::NoValue
       Policies:
         - PolicyName: ListS3BucketObjects
@@ -753,8 +762,11 @@ Resources:
             - IsDev
             - Effect: Allow
               Principal:
-                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/DigiroadOthAdmin"
+                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
               Action: sts:AssumeRole
+              Condition:
+                StringLike:
+                  aws:PrincipalArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-reserved/sso.amazonaws.com/${AWS::Region}/AWSReservedSSO_DigiroadOthAdmin*"
             - !Ref AWS::NoValue
       Policies:
         - PolicyName: ReadS3BucketObject
