@@ -3,41 +3,20 @@ import { Prohibition } from "./prohibitions";
 import { codeListRef, conditionOperators, CodeListReference, validityPeriodOperations, vehicleChars } from "./utils";
 
 export const conditionOperations = {
-    // Add vehicle condition or set of conditions
-    createVehicleCondition(negate: boolean, prohibitions: Prohibition[]) {
-        const groupedProhibitions = this.groupByVehicleCharacteristics(prohibitions);
+    createVehicleCondition(negate: boolean, prohibition: Prohibition): Condition {
         const vehicleCondition = new VehicleCondition(negate);
-        const vehicleUsages = groupedProhibitions.get(vehicleChars.vehicleUsage);
-        const addToSet = vehicleUsages != undefined && vehicleUsages.length > 1;
-        const setOfConditions = new ConditionSet(conditionOperators.or);
-
-        groupedProhibitions.forEach((value, key) => {
-            switch (key) {
-                case vehicleChars.vehicleType:
-                    for (const prohibition of value) {
-                        vehicleCondition.addVehicleType(prohibition.value);
-                    }
-                    if (addToSet) setOfConditions.addCondition(new Condition().addVehicleCondition(vehicleCondition));
-                    break;
-                case vehicleChars.vehicleUsage:
-                    if (!addToSet) vehicleCondition.addVehicleUsage(value[0].value);
-                    else {
-                        // There can be only one usage type per vehicle charasteristic
-                        // If there is more add them in separate vehicle conditions
-                        for (const prohibition of value) {
-                            const condition = new VehicleCondition(negate);
-                            condition.addVehicleUsage(prohibition.value);
-                            setOfConditions.addCondition(new Condition().addVehicleCondition(condition));
-                        }
-                    }
-                    break;
-            }
-        });
-        const condition = new Condition();
-        return addToSet ? condition.addConditionSet(setOfConditions) : condition.addVehicleCondition(vehicleCondition);
+        switch (prohibition.type) {
+            case vehicleChars.vehicleType:
+                vehicleCondition.addVehicleType(prohibition.value);
+                break;
+            case vehicleChars.vehicleUsage:
+                vehicleCondition.addVehicleUsage(prohibition.value);
+                break;
+        };
+        return new Condition().addVehicleCondition(vehicleCondition);
     },
-    
-    createTimeCondition(negate: boolean, set: ConditionSet, validFrom: string, validityPeriods: ValidityPeriod[]) {
+
+    createTimeCondition(negate: boolean, validFrom: string, validityPeriods: ValidityPeriod[]): Condition {
         const overallPeriod = new OverallPeriod(validFrom);
         const periodsGroupedByTime = this.groupByValidityTime(validityPeriods);
 
@@ -51,18 +30,7 @@ export const conditionOperations = {
             period.addTimePeriodOfDay(time.startTime, time.endTime);
             overallPeriod.addValidPeriod(period);
         }
-        const timeCondition = new TimeCondition(negate, overallPeriod);
-        set.addCondition(new Condition().addTimeCondition(timeCondition));
-    },
-
-    // Groups prohibitions by vehicle characteristics
-    groupByVehicleCharacteristics(prohibitions: Prohibition[]): Map<string, Prohibition[]> {
-        const map: Map<string, Prohibition[]> = new Map();
-        for (const characteristic of Object.keys(vehicleChars)) {
-            const filteredProhibitions = prohibitions.filter(prohibition => prohibition.type == characteristic);
-            if (filteredProhibitions?.length) map.set(characteristic, filteredProhibitions)
-        }
-        return map;
+        return new Condition().addTimeCondition(new TimeCondition(negate, overallPeriod));
     },
 
     groupByValidityTime(validityPeriods: ValidityPeriod[]): TimePeriod[] {

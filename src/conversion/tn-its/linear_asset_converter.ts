@@ -54,8 +54,8 @@ export class LinearTnItsConverter extends AssetConverter {
         switch (assetType.id) {
             case "trailer_truck_weight_limits":
                 // Restriction only applies to articulated vehicles
-                const vehicleType = VehicleProhibitions.getProhibition(13); 
-                const vehicleCondition = conditionOperations.createVehicleCondition(false, vehicleType);
+                const vehicleType = VehicleProhibitions.getProhibition(13);
+                const vehicleCondition = conditionOperations.createVehicleCondition(false, vehicleType[0]);
                 return vehicleCondition;
             case "vehicle_prohibitions":
                 const conditions = this.vehicleConditions(feature as ProhibitionFeature, validFrom);
@@ -103,11 +103,13 @@ export class LinearTnItsConverter extends AssetConverter {
             const exceptions = VehicleProhibitions.getExceptions(value.exceptions);
             const validityPeriod = value.validityPeriod;
 
-            if (prohibition.length) {
+            if (prohibition.length == 1 && !exceptions.length && !validityPeriod.length) {
+                conditions.push(conditionOperations.createVehicleCondition(false, prohibition[0]));
+            } else if (prohibition.length) {
                 const set = new ConditionSet(conditionOperators.and);
-                set.addCondition(conditionOperations.createVehicleCondition(false, prohibition));
-                if (exceptions.length) set.addCondition(conditionOperations.createVehicleCondition(true, exceptions));
-                if (validityPeriod.length) conditionOperations.createTimeCondition(false, set, validFrom, validityPeriod);
+                prohibition.forEach(restriction => set.addCondition(conditionOperations.createVehicleCondition(false, restriction)));
+                exceptions.forEach(exception => set.addCondition(conditionOperations.createVehicleCondition(true, exception)))
+                if (validityPeriod.length) set.addCondition(conditionOperations.createTimeCondition(false, validFrom, validityPeriod));
                 conditions.push(new Condition().addConditionSet(set));
             }
         });
