@@ -113,8 +113,12 @@ export class LinearTnItsConverter extends AssetConverter {
                 conditions.push(new Condition().addConditionSet(set));
             }
         });
-        if (conditions.length) return conditions;
-        else {
+        if (conditions.length) {
+            const uniqueConditions = conditions.map(val => JSON.stringify(val))
+                                               .filter((val, i, self) => self.indexOf(val) == i)
+                                               .map(val => JSON.parse(val));
+            return uniqueConditions;
+        } else {
             throw new Error(`Unrecognized or excluded prohibiton type "${values[0].typeId}" on asset ${feature.id}`);
         }
     }
