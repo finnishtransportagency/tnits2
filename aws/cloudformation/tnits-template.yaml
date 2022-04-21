@@ -805,3 +805,74 @@ Resources:
         - !Ref ListDataSetsLambdaRole
         - !Ref ReadDataSetLambdaRole
         
+  # Lambda error notifications
+
+  ConversionErrorSNSTopic:
+    Condition: IsProd
+    Type: AWS::SNS::Topic
+    Properties: 
+      DisplayName: TN-ITS conversion lambda has failed
+      FifoTopic: false
+      Subscription: 
+        - Endpoint: "kehitys@digiroad.fi"
+          Protocol: "email"
+      TopicName: !Sub ${Environment}-${ApplicationName}-conversion-error-sns-topic
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-conversion-error-sns-topic
+  
+  ConversionErrorAlarm:
+    Condition: IsProd
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${Environment}-${ApplicationName}-conversion-errors
+      AlarmDescription: !Sub Alarm for errors in ${ApplicationName} conversion lambda
+      ActionsEnabled: true
+      AlarmActions:
+        - !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${Environment}-${ApplicationName}-conversion-error-sns-topic"
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Threshold: 1
+      EvaluationPeriods: 1
+      Period: 900 # 15 minutes
+      Statistic: Sum
+      TreatMissingData: ignore
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub ${Environment}-${ApplicationName}-dataset-conversion
+
+  ValidationErrorSNSTopic:
+    Condition: IsProd
+    Type: AWS::SNS::Topic
+    Properties: 
+      DisplayName: TN-ITS validation lambda has failed
+      FifoTopic: false
+      Subscription: 
+        - Endpoint: "kehitys@digiroad.fi"
+          Protocol: "email"
+      TopicName: !Sub ${Environment}-${ApplicationName}-validation-error-sns-topic
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${Environment}-validation-error-sns-topic
+  
+  ValidationErrorAlarm:
+    Condition: IsProd
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${Environment}-${ApplicationName}-validation-errors
+      AlarmDescription: !Sub Alarm for errors in ${ApplicationName} validation lambda
+      ActionsEnabled: true
+      AlarmActions:
+        - !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${Environment}-${ApplicationName}-validation-error-sns-topic"
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Threshold: 1
+      EvaluationPeriods: 1
+      Period: 900 # 15 minutes
+      Statistic: Sum
+      TreatMissingData: ignore
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub ${Environment}-${ApplicationName}-dataset-validation

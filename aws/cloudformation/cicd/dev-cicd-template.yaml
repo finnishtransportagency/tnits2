@@ -226,7 +226,7 @@ Resources:
                 Resource: '*'
                 Effect: Allow
               - Action:
-                  - ec2:createTags
+                  - ec2:CreateTags
                   - ec2:DescribeVpcs
                   - ec2:DescribeSubnets
                   - ec2:DescribeSecurityGroups
@@ -296,6 +296,20 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:*'
                   - !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:*'
+                Effect: Allow
+              - Action:
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:PutMetricAlarm
+                  - cloudwatch:DeleteAlarms
+                Resource: !Sub 'arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:dev-${ApplicationName}*'
+                Effect: Allow
+              - Action:
+                  - sns:GetTopicAttributes
+                  - sns:CreateTopic
+                  - sns:TagResource
+                  - sns:DeleteTopic
+                  - sns:Subscribe
+                Resource: !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:dev-${ApplicationName}*'
                 Effect: Allow
       Tags:
         - Key: Name
