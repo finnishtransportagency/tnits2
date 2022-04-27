@@ -48,7 +48,7 @@ aws ssm put-parameter --overwrite --name /tnits2/prod/apikey/digiroad --type Sec
 ```
 aws cloudformation create-stack \
 --stack-name [esim. tnits2-prod-ecr-repository] \
---template-body file://aws/cloudformation/ecr/ecr-template.yaml \
+--template-body file://aws/cloudformation/ecr/prod-ecr-template.yaml \
 --parameters file://aws/prod/ecr-parameter.json \
 --tags file://aws/prod/tags.json
 ```
