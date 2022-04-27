@@ -5,10 +5,6 @@ Parameters:
   ApplicationName:
     Description: Name of the application
     Type: String
-  Environment:
-    Description: Environment where resources are created "dev", "qa" or "prod"
-    Type: String
-    AllowedValues: ["dev", "qa", "prod"]
   DevAdminAccountArn:
     Description: ARN of dev admin account
     Type: String
@@ -57,4 +53,4 @@ Resources:
           }
       Tags:
         - Key: Name
-          Value: !Sub ${ApplicationName}-${Environment}-ecr-repo
+          Value: !Sub ${ApplicationName}-prod-ecr-repo

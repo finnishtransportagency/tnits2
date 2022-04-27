@@ -4,10 +4,6 @@
         "ParameterValue": "tnits2"
     },
     {
-        "ParameterKey": "Environment",
-        "ParameterValue": "prod"
-    },
-    {
         "ParameterKey": "DevAdminAccountArn",
         "ParameterValue": "arn:aws:iam::475079312496:role/DigiroadOthAdmin"
     },
