@@ -1,0 +1,34 @@
+[
+    {
+        "ParameterKey": "ApplicationName",
+        "ParameterValue": "tnits2"
+    },
+    {
+        "ParameterKey": "Environment",
+        "ParameterValue": "dev"
+    },
+    {
+        "ParameterKey": "OrganizationPrefix",
+        "ParameterValue": "vaylapilvi"
+    },
+    {
+        "ParameterKey": "NetworkStackName",
+        "ParameterValue": "Digiroad-OTH-kehitys"
+    },
+    {
+        "ParameterKey": "ECRRepository",
+        "ParameterValue": "tnits2"
+    },
+    {
+        "ParameterKey": "ECRImageTag",
+        "ParameterValue": "latest"
+    },
+    {
+        "ParameterKey": "DigiroadAPI",
+        "ParameterValue": "https://devapi.testivaylapilvi.fi/digiroad/externalApi/changes/"
+    },
+    {
+        "ParameterKey": "TnItsAPI",
+        "ParameterValue": "placeholder/"
+    }
+]
