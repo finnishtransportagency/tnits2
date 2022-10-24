@@ -97,7 +97,7 @@ export interface LinkProperties {
 
 export interface Link {
     geometry: LinearGeometry;
-    id: number;
+    id: string;
     properties: LinkProperties;
     type: string;
 }
