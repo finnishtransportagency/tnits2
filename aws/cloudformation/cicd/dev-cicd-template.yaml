@@ -37,7 +37,6 @@ Resources:
 
   CodePipelineArtifactStoreBucket:
     Type: AWS::S3::Bucket
-    Description: "Amazon S3 bucket for AWS CodePipeline artifacts"
     DeletionPolicy: Retain
     Properties:
       BucketName: !Sub "${PipelineName}-artifact-store-bucket"
@@ -86,7 +85,6 @@ Resources:
 
   AppPipeline:
     Type: AWS::CodePipeline::Pipeline
-    Description: "Deployment pipeline for tnits2 dev environment"
     Properties:
       Name: !Ref PipelineName
       RoleArn: !GetAtt CodePipelineRole.Arn
@@ -98,7 +96,7 @@ Resources:
           Actions:
             - Name: SourceAction
               ActionTypeId:
-                Version: 1
+                Version: "1"
                 Category: Source
                 Owner: ThirdParty
                 Provider: GitHub
@@ -119,7 +117,7 @@ Resources:
               ActionTypeId:
                 Category: Build
                 Owner: AWS
-                Version: 1
+                Version: "1"
                 Provider: CodeBuild
               OutputArtifacts:
                 - Name: BuildOutput

@@ -114,6 +114,16 @@ Laita konversio lambdan käynnistävä EventBridge sääntö takaisin päälle s
 aws events enable-rule --name dev-tnits2-conversion-event
 ```
 
+### Lisää lambdojen lokeille vanhenemisaika
+*Huom.* Varmista että log-group-name on kirjoitettu oikein.
+
+```
+aws logs put-retention-policy --log-group-name /aws/lambda/dev-tnits2-dataset-conversion --retention-in-days 180
+aws logs put-retention-policy --log-group-name /aws/lambda/dev-tnits2-dataset-validation --retention-in-days 180
+aws logs put-retention-policy --log-group-name /aws/lambda/dev-tnits2-list-datasets --retention-in-days 90
+aws logs put-retention-policy --log-group-name /aws/lambda/dev-tnits2-read-dataset --retention-in-days 90
+```
+
 # TN-ITS kehitys, päivitys
 
 ## Aseta ympäristömuuttujat
