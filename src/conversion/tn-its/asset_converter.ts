@@ -42,10 +42,12 @@ export class AssetConverter {
                 let realValidFrom = "";
                 switch (changeType) {
                     case "Add":
-                        realValidFrom = localDateTimeToDate(feature.properties.createdAt).toISOString();
+                        if (feature.properties.createdAt == undefined) realValidFrom = validFrom
+                        else realValidFrom = localDateTimeToDate(feature.properties.createdAt).toISOString();
                         break;
                     case "Modify":
-                        realValidFrom = localDateTimeToDate(feature.properties.modifiedAt).toISOString();
+                        if (feature.properties.modifiedAt == undefined) realValidFrom = validFrom
+                        else realValidFrom = localDateTimeToDate(feature.properties.modifiedAt).toISOString();
                         break;
                     case "Remove":
                     default:
