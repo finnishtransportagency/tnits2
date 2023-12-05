@@ -5,7 +5,7 @@ import { getInstances, AxiosInstances } from './instances';
 
 /** Max number of changes fetched at one query */
 const LIMIT_RECORD_NUMBER = 8000;
-const MAX_REDIRECTS = 540; // same as Digiroad
+const MAX_REDIRECTS = 540; // 3 hours / 20 seconds per retry. Same as Digiroad
 
 export async function fetchAllChanges(startTime: string, endTime: string) {
     console.log(`Fetching changes from ${startTime} to ${endTime}`);
