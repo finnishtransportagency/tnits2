@@ -1,10 +1,11 @@
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosInstance, AxiosError } from "axios";
 import { AssetType, AssetTypes } from '../tn-its/helper/asset_types';
 import { AssetTypeChanges } from '../tn-its/helper/interfaces';
 import { getInstances, AxiosInstances } from './instances';
 
 /** Max number of changes fetched at one query */
 const LIMIT_RECORD_NUMBER = 8000;
+const MAX_REDIRECTS = 540; // 3 hours / 20 seconds per retry. Same as Digiroad
 
 export async function fetchAllChanges(startTime: string, endTime: string) {
     console.log(`Fetching changes from ${startTime} to ${endTime}`);
@@ -38,7 +39,7 @@ async function recursiveAssetTypeRequest( assetType: AssetType, instance: AxiosI
     const limit_messages = `pageNumber:${pageNumber}, recordNumber:${LIMIT_RECORD_NUMBER}`;
     const token = Buffer.from(limit_messages).toString('base64');
     try {
-        const response = await instance.get(`${assetType.id}?since=${since}&until=${until}&token=${token}`);
+        const response = await instance.get(`${assetType.id}?since=${since}&until=${until}&token=${token}`, {maxRedirects: MAX_REDIRECTS});
         results.features = results.features.concat(response.data.features);
         if (response.data.features.length === LIMIT_RECORD_NUMBER) {
             return await recursiveAssetTypeRequest(assetType, instance, since, until, pageNumber + 1, results);
@@ -48,13 +49,19 @@ async function recursiveAssetTypeRequest( assetType: AssetType, instance: AxiosI
         }
     } catch (err) {
         if (axios.isAxiosError(err)) {
-            console.error(`Asset type ${assetType.id} responded with error:`);
-            console.error(err.response?.data);
-            throw new Error(`Error happened during fetch of ${assetType.id} (${err.response?.status}: ${err.response?.statusText})`);
+            throw new Error(`Error happened during fetch of ${assetType.id} ` + getAxiosErrorMessage(err));
         } else {
             console.error(`Asset type ${assetType.id} responded with error:`);
             console.error(err)
             throw new Error(`Error happened during fetch of ${assetType.id}`);
         }
     }
+}
+
+function getAxiosErrorMessage(err: AxiosError): string {
+    if (err.response == undefined) {
+        return (`(${err.message})`);
+    }
+    const { status, statusText, data } = err.response;
+    return `(${status}: ${statusText}. Data fetched: ${data})`;
 }
