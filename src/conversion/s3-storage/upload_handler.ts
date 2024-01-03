@@ -1,5 +1,13 @@
-import S3, { PutObjectRequest, PutObjectOutput, UploadPartRequest, PartNumber, CompletedPart, CompletedPartList, CompleteMultipartUploadRequest, CompleteMultipartUploadOutput } from 'aws-sdk/clients/s3';
-const s3 = new S3;
+import {
+    CompletedPart, CompleteMultipartUploadCommand,
+    CompleteMultipartUploadCommandInput,
+    CompleteMultipartUploadCommandOutput, CreateMultipartUploadCommand, PutObjectCommand,
+    PutObjectCommandInput,
+    PutObjectCommandOutput,
+    S3Client, UploadPartCommand,
+    UploadPartCommandInput,
+} from "@aws-sdk/client-s3";
+const s3Client = new S3Client({region: process.env.AWS_REGION});
 
 // Upload files greater than 100 Mb with multipart upload 
 const multiPartUploadLimitBytes = 1024 * 1024 * 100;
@@ -26,20 +34,27 @@ export async function uploadToS3 (id: string, data: string): Promise<void> {
     }
 }
 
-async function uploadObjectToS3(s3Bucket: string, objectKey: string, data: string): Promise<PutObjectOutput> {
-    const params: PutObjectRequest = {
+async function uploadObjectToS3(s3Bucket: string, objectKey: string, data: string): Promise<PutObjectCommandOutput> {
+    const params: PutObjectCommandInput = {
         Bucket: s3Bucket,
         Key: objectKey,
         Body: data,
         ContentType: 'application/xml'
     };
-    return await s3.putObject(params).promise();
+    try {
+        const command = new PutObjectCommand(params)
+        return await s3Client.send(command);
+    }
+    catch (err) {
+        console.error(err)
+        throw new Error('Error uploading object to S3')
+    }
 }
 
-async function multiPartUploadObjectToS3(s3Bucket: string, objectKey: string, data: string): Promise<PutObjectOutput> {
+async function multiPartUploadObjectToS3(s3Bucket: string, objectKey: string, data: string): Promise<PutObjectCommandOutput> {
     const chunks = dataToChunks(data);
     const uploadId = await createMultiPartUpload(s3Bucket, objectKey);
-    const completedParts: CompletedPartList = [];
+    const completedParts: Array<CompletedPart> = [];
     for (const part of chunks) {
         completedParts.push(await uploadPart(s3Bucket, uploadId, objectKey, part.data, part.partNumber));
         console.info(`Uploaded part ${part.partNumber} / ${chunks.length}`);
@@ -72,33 +87,54 @@ async function createMultiPartUpload(s3Bucket: string, objectKey: string): Promi
         Bucket: s3Bucket,
         Key: objectKey
     };
-    const { UploadId } = await s3.createMultipartUpload(params).promise();
-    if (UploadId) return UploadId;
-    else throw new Error("Unable to form upload id")
+    try {
+        const command = new CreateMultipartUploadCommand(params)
+        const { UploadId } = await s3Client.send(command);
+        if (UploadId) return UploadId;
+        else throw new Error("Unable to form upload id")
+    }
+    catch (err) {
+        console.error(err)
+        throw new Error("Error creating MultiPart upload")
+    }
 }
 
 async function uploadPart(s3Bucket: string, uploadId: string, objectKey: string, data: Buffer, 
-                          partNr: PartNumber, retry: number = 0): Promise<CompletedPart> {
-    const params: UploadPartRequest = {
+                          partNr: number, retry: number = 0): Promise<CompletedPart> {
+    const params: UploadPartCommandInput = {
         Bucket: s3Bucket,
         UploadId: uploadId,
         Key: objectKey,
         PartNumber: partNr,
         Body: data
     };
-    const { ETag } = await s3.uploadPart(params).promise()
-    if (ETag) return { ETag: ETag, PartNumber: partNr };
-    else if (retry < 3) {
-        return uploadPart(s3Bucket, uploadId, objectKey, data, partNr, retry + 1);
-    } else throw new Error("Unable to upload part");
+    try {
+        const command = new UploadPartCommand(params)
+        const { ETag } = await s3Client.send(command)
+        if (ETag) return { ETag: ETag, PartNumber: partNr };
+        else if (retry < 3) {
+            return uploadPart(s3Bucket, uploadId, objectKey, data, partNr, retry + 1);
+        } else throw new Error("Unable to upload part");
+    }
+    catch (err) {
+        console.error(err)
+        throw new Error("Error uploading part")
+}
 }
 
-async function completeMultiPartUpload(s3Bucket: string, uploadId: string, objectKey: string, partList: CompletedPartList): Promise<CompleteMultipartUploadOutput> {
-    const params: CompleteMultipartUploadRequest = {
+async function completeMultiPartUpload(s3Bucket: string, uploadId: string, objectKey: string, partList: Array<CompletedPart>): Promise<CompleteMultipartUploadCommandOutput> {
+    const params: CompleteMultipartUploadCommandInput = {
         Bucket: s3Bucket,
         Key: objectKey,
-        MultipartUpload: { Parts: partList },
+        MultipartUpload: {Parts: partList},
         UploadId: uploadId
     }
-    return await s3.completeMultipartUpload(params).promise();
+    try {
+        const command = new CompleteMultipartUploadCommand(params)
+        return await s3Client.send(command);
+    }
+    catch (err) {
+        console.error(err)
+        throw new Error("Error completing MultiPart upload")
+    }
 }

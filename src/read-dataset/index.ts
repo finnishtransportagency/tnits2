@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { getSignedUrl } from './s3-storage/fetch-handler';
+import { getSignedDatasetUrl } from './s3-storage/fetch-handler';
 
 export const handler = async ( event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     const dataSetID = event.queryStringParameters?.dataSetID;
@@ -7,7 +7,7 @@ export const handler = async ( event: APIGatewayProxyEvent): Promise<APIGatewayP
         throw new Error("Required dataset ID missing");
     }
     try {
-        const dataSetUrl = await getSignedUrl(encodeURIComponent(dataSetID));
+        const dataSetUrl = await getSignedDatasetUrl(encodeURIComponent(dataSetID));
         return gatewayResponse(302, '', 'application/xml', dataSetUrl);
     } catch (err) {
         console.error(err);

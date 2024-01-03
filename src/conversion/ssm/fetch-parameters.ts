@@ -1,5 +1,5 @@
-import ssm from 'aws-sdk/clients/ssm';
-const SSM = new ssm();
+import {GetParameterCommand, GetParameterCommandOutput, SSMClient} from '@aws-sdk/client-ssm';
+const ssmClient = new SSMClient({region: process.env.AWS_REGION});
 
 /**
  * Fetch parameter value from parameter store
@@ -12,10 +12,17 @@ export async function fetchSSMParameterValue(name: string, secure: boolean): Pro
         Name: name,
         WithDecryption: secure
     }
-    const parameter = await SSM.getParameter(params).promise();
-    const value = parameter.Parameter?.Value;
-    if (!value) {
-        throw new Error(`Empty API Key value for: ${name}`)
+    try {
+        const command: GetParameterCommand = new GetParameterCommand(params)
+        const result: GetParameterCommandOutput = await ssmClient.send(command)
+        const value = result.Parameter?.Value;
+        if (!value) {
+            throw new Error(`Empty API Key value for: ${name}`)
+        }
+        return value;
     }
-    return value;
+    catch (err) {
+        console.error(err)
+        throw new Error("Error fetching SSM paramater value")
+    }
 }
