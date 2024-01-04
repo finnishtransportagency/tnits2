@@ -99,7 +99,7 @@ async function createMultiPartUpload(s3Bucket: string, objectKey: string): Promi
     }
 }
 
-async function uploadPart(s3Bucket: string, uploadId: string, objectKey: string, data: Buffer, 
+async function uploadPart(s3Bucket: string, uploadId: string, objectKey: string, data: Buffer,
                           partNr: number, retry: number = 0): Promise<CompletedPart> {
     const params: UploadPartCommandInput = {
         Bucket: s3Bucket,
@@ -119,7 +119,7 @@ async function uploadPart(s3Bucket: string, uploadId: string, objectKey: string,
     catch (err) {
         console.error(err)
         throw new Error("Error uploading part")
-}
+    }
 }
 
 async function completeMultiPartUpload(s3Bucket: string, uploadId: string, objectKey: string, partList: Array<CompletedPart>): Promise<CompleteMultipartUploadCommandOutput> {
