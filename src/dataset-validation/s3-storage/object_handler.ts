@@ -1,23 +1,33 @@
-import S3, { CopyObjectRequest, DeleteObjectRequest, GetObjectRequest, GetObjectOutput } from 'aws-sdk/clients/s3';
-const s3 = new S3;
+import {
+    GetObjectCommand,
+    CopyObjectCommand,
+    DeleteObjectCommand,
+    S3Client,
+    GetObjectCommandOutput,
+    GetObjectCommandInput,
+    CopyObjectCommandInput,
+    DeleteObjectCommandInput
+} from "@aws-sdk/client-s3";
+const s3Client = new S3Client({region: process.env.AWS_REGION});
 
-export async function fetchObject(dataSetID: string): Promise<GetObjectOutput> {
+export async function fetchObject(dataSetID: string): Promise<GetObjectCommandOutput> {
     if (!process.env.S3_BUCKET_INCOMING){
         throw new Error("No datasource available.");
     }
-    const params: GetObjectRequest = {
+    const params: GetObjectCommandInput = {
         Bucket: process.env.S3_BUCKET_INCOMING,
         Key: dataSetID
     };
     try {
-        return await s3.getObject(params).promise();
+        const command: GetObjectCommand = new GetObjectCommand(params)
+        return await s3Client.send(command);
     } catch (err) {
         console.error(err);
         throw new Error(`Error getting object ${dataSetID} from bucket ${params.Bucket}`);
     }
 }
 
-export async function moveObject(key: string, dataSet: GetObjectOutput): Promise<string> {
+export async function moveObject(key: string, dataSet: GetObjectCommandOutput): Promise<string> {
     if (dataSet.ContentLength && dataSet.ContentLength > 5368706371) {
         throw new Error(`Not able to relocate file. File size (${ dataSet.ContentLength }) exceeds allowed 5 Gb.`);
     }
@@ -39,18 +49,20 @@ export async function moveObject(key: string, dataSet: GetObjectOutput): Promise
 
 async function copyObject(oldBucket: string, newBucket: string, key: string) {
     const copySource = `/${oldBucket}/${key}`;
-    const copyParams: CopyObjectRequest = {
+    const copyParams: CopyObjectCommandInput = {
         Bucket: newBucket,
         CopySource: encodeURIComponent(copySource),
         Key: key
     };
-    return await s3.copyObject(copyParams).promise();
+    const command = new CopyObjectCommand(copyParams)
+    return await s3Client.send(command);
 }
 
 async function deleteObject(bucket: string, key: string) {
-    const deleteParams: DeleteObjectRequest = {
+    const deleteParams: DeleteObjectCommandInput = {
         Bucket: bucket,
         Key: key
     }
-    return await s3.deleteObject(deleteParams).promise();
+    const command = new DeleteObjectCommand(deleteParams)
+    return await s3Client.send(command);
 }

@@ -1,7 +1,8 @@
-import S3 from 'aws-sdk/clients/s3';
-const s3 = new S3;
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+const s3Client = new S3Client({region: process.env.AWS_REGION});
 
-export async function getSignedUrl(dataSetID: string): Promise<string> {
+export async function getSignedDatasetUrl(dataSetID: string): Promise<string> {
     if (!process.env.S3_BUCKET){
         throw new Error("No datasource available.");
     }
@@ -11,7 +12,8 @@ export async function getSignedUrl(dataSetID: string): Promise<string> {
         Expires: 3600 // seconds = 1 hour
     };
     try {
-        return await s3.getSignedUrlPromise('getObject', params);
+        const command = new GetObjectCommand(params)
+        return await getSignedUrl(s3Client, command);
     } catch (err) {
         console.error(err);
         throw new Error(`Error generating pre-signed URL for dataset ${dataSetID}`);

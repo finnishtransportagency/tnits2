@@ -20,7 +20,7 @@ Resources:
           DIGIROAD_API: ""
           DIGIROAD_API_KEY: ""
     Metadata:
-      DockerTag: nodejs14.x-v1
+      DockerTag: nodejs20-v2
       DockerContext: ../../
       Dockerfile: Dockerfile
 
@@ -39,7 +39,7 @@ Resources:
           S3_BUCKET_INCOMING: ""
           S3_BUCKET_VALID: ""
     Metadata:
-      DockerTag: nodejs14.x-v1
+      DockerTag: nodejs20-v2
       DockerContext: ../../
       Dockerfile: Dockerfile
 
@@ -58,7 +58,7 @@ Resources:
           READ_DATASET_URL: "placeholder"
           S3_BUCKET: ""
     Metadata:
-      DockerTag: nodejs14.x-v1
+      DockerTag: nodejs20-v2
       DockerContext: ../../
       Dockerfile: Dockerfile
 
@@ -76,6 +76,6 @@ Resources:
         Variables:
           S3_BUCKET: ""
     Metadata:
-      DockerTag: nodejs14.x-v1
+      DockerTag: nodejs20-v2
       DockerContext: ../../
       Dockerfile: Dockerfile
