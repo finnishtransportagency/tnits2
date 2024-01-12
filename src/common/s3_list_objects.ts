@@ -1,6 +1,10 @@
-import S3, { ListObjectsV2Output, ListObjectsV2Request, ObjectList } from 'aws-sdk/clients/s3';
+import {ListObjectsV2Command, ListObjectsV2CommandInput, ListObjectsV2CommandOutput, S3Client } from '@aws-sdk/client-s3';
 import { DatasetID, DatasetIDGenerator } from './dataset_id';
-const s3 = new S3;
+const s3Client = new S3Client({region: process.env.AWS_REGION});
+
+interface S3Object {
+    Key?: string;
+}
 
 /**
  * Get start time to new dataset
@@ -41,10 +45,10 @@ async function listBucketObjects(bucket?: string): Promise<DatasetID[]> {
     if (!bucket) {
         throw new Error("No datasource available.");
     }
-    const params: ListObjectsV2Request = {
+    const params: ListObjectsV2CommandInput = {
         Bucket: bucket
     };
-    const s3Objects: ObjectList = await listAllBucketObjects(params);
+    const s3Objects: S3Object[] = await listAllBucketObjects(params);
     const keys: string[] = [];
     s3Objects.forEach(obj => {
         if (obj.Key && obj.Key.endsWith('.xml')) {
@@ -54,14 +58,21 @@ async function listBucketObjects(bucket?: string): Promise<DatasetID[]> {
     return sortByCreateTime(keys);
 }
 
-async function listAllBucketObjects(params: ListObjectsV2Request): Promise<ObjectList> {
-    const result: ListObjectsV2Output = await s3.listObjectsV2(params).promise();
-    if (result.IsTruncated && result.Contents) {
-        params.ContinuationToken = result.NextContinuationToken;
-        return result.Contents.concat(await listAllBucketObjects(params));
-    } else {
-        if (result.Contents) return result.Contents;
-        else return [];
+async function listAllBucketObjects(params: ListObjectsV2CommandInput): Promise<S3Object[]> {
+    try {
+        const command = new ListObjectsV2Command(params)
+        const result: ListObjectsV2CommandOutput = await s3Client.send(command);
+        if (result.IsTruncated && result.Contents) {
+            params.ContinuationToken = result.NextContinuationToken;
+            return result.Contents.concat(await listAllBucketObjects(params));
+        } else {
+            if (result.Contents) return result.Contents;
+            else return [];
+        }
+    }
+    catch (err) {
+        console.error(err)
+        throw new Error("Error listing all bucket objects")
     }
 }
 

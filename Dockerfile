@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/nodejs:14
+FROM public.ecr.aws/lambda/nodejs:20
 
 COPY package*.json ${LAMBDA_TASK_ROOT}/
 RUN npm install
