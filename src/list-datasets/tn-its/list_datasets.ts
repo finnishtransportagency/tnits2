@@ -1,4 +1,4 @@
-import { j2xParser as Parser } from "fast-xml-parser";
+import { XMLBuilder as Parser } from "fast-xml-parser";
 
 const path = "download/readDataSet?dataSetID=";
 
@@ -32,7 +32,7 @@ export class DatasetLister {
             supressEmptyNode: true
         };
         const parser = new Parser(options);
-        return parser.parse(this);
+        return parser.build(this);
     }
 }
 
