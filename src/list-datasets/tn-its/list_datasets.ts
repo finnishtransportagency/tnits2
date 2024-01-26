@@ -1,4 +1,4 @@
-import { XMLBuilder as Parser } from "fast-xml-parser";
+const xml2js = require('xml2js')
 
 const path = "download/readDataSet?dataSetID=";
 
@@ -27,12 +27,10 @@ export class DatasetLister {
 
     datasetRefListAsXml(): string  {
         const options = {
-            attrNodeName: "$",
-            textNodeName: "_text",
-            supressEmptyNode: true
+            headless: true
         };
-        const parser = new Parser(options);
-        return parser.build(this);
+        const builder = new xml2js.Builder(options);
+        return builder.buildObject(this)
     }
 }
 

@@ -1,6 +1,6 @@
-import { XMLBuilder as Builder } from "fast-xml-parser";
 import { AssetTypeChanges } from "./helper/interfaces";
 import { RoadFeatureDataset } from "./helper/road_feature";
+const xml2js = require('xml2js')
 
 export class TnItsConverter {
     dataset: { RoadFeatureDataset: RoadFeatureDataset};
@@ -24,12 +24,13 @@ export class TnItsConverter {
 
     datasetAsXML() {
         const options = {
-            attrNodeName: "$",
-            textNodeName: "_text",
-            suppressEmptyNode: true
+            headless: true,
+            renderOpts: {
+                pretty: false           // Indent the output for better readability
+            },
         };
-        const parser = new Builder(options);
-        return parser.build(this.dataset);
+        const builder = new xml2js.Builder(options);
+        return builder.buildObject(this.dataset)
     }
 }
 
