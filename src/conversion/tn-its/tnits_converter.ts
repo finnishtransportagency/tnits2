@@ -26,7 +26,7 @@ export class TnItsConverter {
         const options = {
             headless: true,
             renderOpts: {
-                pretty: false           // Indent the output for better readability
+                pretty: false
             },
         };
         const builder = new xml2js.Builder(options);
