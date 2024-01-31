@@ -1,6 +1,6 @@
-import { j2xParser as Parser } from "fast-xml-parser";
 import { AssetTypeChanges } from "./helper/interfaces";
 import { RoadFeatureDataset } from "./helper/road_feature";
+const xml2js = require('xml2js')
 
 export class TnItsConverter {
     dataset: { RoadFeatureDataset: RoadFeatureDataset};
@@ -14,7 +14,7 @@ export class TnItsConverter {
                 this.dataset.RoadFeatureDataset.addRoadFeature(roadFeature);
             }
         }
-        
+
         // If there are no road features in the dataset, add null value to array
         // This will generate empty tag <roadFeatures/> in xml which is needed for xml to pass validation
         if (this.dataset.RoadFeatureDataset.roadFeatures.length < 1) {
@@ -24,12 +24,13 @@ export class TnItsConverter {
 
     datasetAsXML() {
         const options = {
-            attrNodeName: "$",
-            textNodeName: "_text",
-            supressEmptyNode: true
+            headless: true,
+            renderOpts: {
+                pretty: false
+            },
         };
-        const parser = new Parser(options);
-        return parser.parse(this.dataset);
+        const builder = new xml2js.Builder(options);
+        return builder.buildObject(this.dataset)
     }
 }
 
