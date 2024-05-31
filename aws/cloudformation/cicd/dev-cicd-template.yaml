@@ -73,7 +73,7 @@ Resources:
     Properties:
       Authentication: GITHUB_HMAC
       AuthenticationConfiguration:
-        SecretToken: !Ref GitHubWebhookSecret
+        SecretToken: !Sub "{{resolve:secretsmanager:${GitHubWebhookSecret}:SecretString:::}}"
       Filters:
         - JsonPath: $.ref
           MatchEquals: 'refs/heads/{Branch}'
@@ -106,7 +106,7 @@ Resources:
                 Owner: !Ref GitHubOwner
                 Repo: !Ref GitRepoName
                 Branch: !Ref GitBranchName
-                OAuthToken: !Ref GitHubWebhookSecret
+                OAuthToken: !Sub "{{resolve:secretsmanager:${GitHubWebhookSecret}:SecretString:::}}"
                 PollForSourceChanges: false
               RunOrder: 1
         - Name: Build
@@ -195,6 +195,11 @@ Resources:
                   - s3:*
                   - cloudformation:*
                 Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:DescribeSecret'
+                  - 'secretsmanager:GetSecretValue'
+                Resource: !Ref GitHubWebhookSecret
       Tags:
         - Key: Name
           Value: !Sub ${ApplicationName}-dev-pipeline-role
