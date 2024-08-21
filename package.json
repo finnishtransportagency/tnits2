@@ -18,11 +18,12 @@
   "dependencies": {
     "axios": "^1.6.0",
     "bytebuffer": "^5.0.1",
-    "libxmljs2": "^0.33.0",
     "openlr-js": "^3.0.6",
     "proj4": "^2.7.2",
     "uuid": "^9.0.1",
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "xmllint": "^0.1.1",
+    "validate-with-xmllint": "^1.2.1"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.484.0",

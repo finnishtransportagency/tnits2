@@ -1,5 +1,6 @@
 const assert = require('chai').assert;
 const validator = require('../../dist/dataset-validation/validator/xml_validator');
+const nodeAssert = require('assert');
 
 describe('Validator: Validate dataset', function() {
     const valid_dataset1 = '<RoadFeatureDataset xmlns="http://spec.tn-its.eu/schemas/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:schemaLocation="http://spec.tn-its.eu/schemas/ http://spec.tn-its.eu/schemas/TNITS.xsd"><metadata><Metadata><datasetId>test</datasetId><datasetCreationTime>2022-01-01T00:00:00.000Z</datasetCreationTime></Metadata></metadata><type>Update</type><roadFeatures/></RoadFeatureDataset>';
@@ -7,26 +8,36 @@ describe('Validator: Validate dataset', function() {
     const invalid_dataset1 = '<RoadFeatureDataset xmlns="http://spec.tn-its.eu/schemas/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:schemaLocation="http://spec.tn-its.eu/schemas/ http://spec.tn-its.eu/schemas/TNITS.xsd"><metadata><Metadata><datasetId>test</datasetId><datasetCreationTime>2022-01-01T00:00:00.000Z</datasetCreationTime></Metadata></metadata><type>Update<roadFeatures/></RoadFeatureDataset>';
     const invalid_dataset2 = '<RoadFeatureDataset xmlns="http://spec.tn-its.eu/schemas/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:schemaLocation="http://spec.tn-its.eu/schemas/ http://spec.tn-its.eu/schemas/TNITS.xsd"><metadata><Metadata><datasetId>test</datasetId><datasetCreationTime>2022-01-01T00:00:00.000Z</datasetCreationTime></Metadata></metadata><type>Update</type></RoadFeatureDataset>';
 
-    it('Validate empty dataset', function() {
-        const validate1 = validator.validate(valid_dataset1, "test");
+    it('Validate empty dataset', async function() {
+        const validate1 = await validator.validate(valid_dataset1, "test");
 
         assert.typeOf(validate1, 'boolean');
         assert.equal(validate1, true);
     });
 
-    it('Validate data set with changes', function() {
-        const validate2 = validator.validate(valid_dataset2, "test");
+    it('Validate data set with changes', async function() {
+        const validate2 = await validator.validate(valid_dataset2, "test");
 
         assert.typeOf(validate2, 'boolean');
         assert.equal(validate2, true);
     })
 
-    it('Validation fails with invalid xml', function() {
-        assert.throws(() => validator.validate(invalid_dataset1, "test"), /Premature end of data in tag RoadFeatureDataset line 1/);
+    it('Validation fails with invalid xml', async function() {
+        await nodeAssert.rejects(
+            async () => {
+                await validator.validate(invalid_dataset1, "test");
+            },
+            /Premature end of data in tag RoadFeatureDataset line 1/
+        );
     });
 
-    it('Validation fails with schema error', function() {
-        assert.throws(() => validator.validate(invalid_dataset2, "test"), /Dataset test did not validate against XSD/);
+    it('Validation fails with schema error', async function() {
+        await nodeAssert.rejects(
+            async () => {
+                await validator.validate(invalid_dataset2, "test");
+            },
+            /Missing child element\(s\)/
+        );
     });
 
 });

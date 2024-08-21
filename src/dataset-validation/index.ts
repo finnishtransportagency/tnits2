@@ -16,7 +16,7 @@ async function validateDataset(record: S3EventRecord): Promise<string> {
     const dataSet = await fetchObject(dataSetID);
     try {
         const dataSetString = await streamToString(dataSet.Body as Readable)
-        validate(dataSetString, dataSetID);
+        await validate(dataSetString, dataSetID);
         const newKey = await moveObject(dataSetID, dataSet);
         return `Successfully validated and moved dataset: ${newKey}`;
     } catch (err) {
