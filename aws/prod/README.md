@@ -131,12 +131,13 @@ aws cloudformation update-stack \
 --template-body file://aws/cloudformation/tnits-template.yaml \
 --parameters file://aws/prod/tnits-parameter.json \
 --capabilities CAPABILITY_NAMED_IAM
+--profile xxxxx # Aseta profiili jos default ei ole oikea
 ```
 Lisää komentoon mukaan *--tags file://aws/prod/tags.json* mikäli halutaan päivittää myös tagit. 
 
 ## Tee uusi API Gateway deployment
 ```
- aws apigateway create-deployment --rest-api-id [API Gatewayn id] --region eu-west-1 --stage-name public
+ aws apigateway create-deployment --rest-api-id [API Gatewayn id] --region eu-west-1 --stage-name public --profile xxxxx # Aseta profiili jos default ei ole oikea
 ```
 
 ### Vie skeemat S3 (tarvittaessa)
