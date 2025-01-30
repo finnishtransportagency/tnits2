@@ -20,7 +20,7 @@ export const handler = async ( event: ScheduledEvent ) => {
  */
  async function generateXmlDataSet(): Promise<string> {
     const startTime = await getNewStartTime(process.env.S3_BUCKET_VALID);
-    const endTime = new Date('2025-01-24T23:59:59');
+    const endTime = new Date();
     endTime.setMinutes(endTime.getMinutes() - 1);
 
     const datasetID = DatasetIDGenerator.encode(LiikennevirastoUUID, startTime.getTime(), endTime.getTime());
