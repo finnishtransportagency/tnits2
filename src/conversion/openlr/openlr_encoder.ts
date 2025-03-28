@@ -49,7 +49,7 @@ export const OpenLREncoder = {
             return openLrBinary.toString('base64');
         } catch (err) {
             if (err instanceof Error) console.error(err.message);
-            throw new Error(`OpenLRException(startMeasure = ${startMeasure}, endMeasure = ${endMeasure}, linkId = ${linkId}, linkLength = ${linkLength}, functionalClass = ${functionalClass}, linkType = ${linkType}, linkGeometry = ${JSON.stringify(linkGeometry)})`);
+            throw new Error(`OpenLRException(startMeasure = ${startMeasure}, endMeasure = ${endMeasure}, linkId = ${linkId}, linkLength = ${linkLength}, functionalClass = ${functionalClass}, linkType = ${linkType}, linkGeometry = ${JSON.stringify(linkGeometry)}, sideCode = ${sideCode})`);
         }
     },
 };
