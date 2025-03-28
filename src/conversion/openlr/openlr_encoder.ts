@@ -1,15 +1,18 @@
 import { BinaryEncoder } from 'openlr-js/lib/es5';
 import { LocationReferencePoint } from 'openlr-js/lib/es5/data/LocationReferencePoint';
 import { RawLineLocationReference } from 'openlr-js/lib/es5/data/raw-location-reference/RawLineLocationReference';
-import { Offsets }from 'openlr-js/lib/es5/data/Offsets';
+import { RawPointAlongLineLocationReference } from 'openlr-js/lib/es5/data/raw-location-reference/RawPointAlongLineLocationReference';
+import { Offsets } from 'openlr-js/lib/es5/data/Offsets';
+import { sideCodeToOpenLROrientation } from './openlr_utils';
+import { locationSpecifierToOpenLRSideOfRoad } from './openlr_utils';
 import { GeometryUtils } from 'openlr-js/lib/es5/map/utils/GeometryUtils';
 import { GeoCoordinates } from 'openlr-js/lib/es5/map/GeoCoordinates';
 import { DigiroadLine } from './digiroad_line';
 import { Point } from '../geometry/point';
 
 export const OpenLREncoder = {
-    encodeAssetOnLink: function (startMeasure: number, endMeasure: number, 
-        linkGeometry: Point[], linkLength: number, functionalClass: number, 
+    encodeLinearAssetOnLink: function (startMeasure: number, endMeasure: number,
+        linkGeometry: Point[], linkLength: number, functionalClass: number,
         linkType:number, linkId: string) {
         try {
             const line = new DigiroadLine(1, linkGeometry, Math.floor(linkLength), linkType, functionalClass);
@@ -27,7 +30,28 @@ export const OpenLREncoder = {
             if (err instanceof Error) console.error(err.message);
             throw new Error(`OpenLRException(startMeasure = ${startMeasure}, endMeasure = ${endMeasure}, linkId = ${linkId}, linkLength = ${linkLength}, functionalClass = ${functionalClass}, linkType = ${linkType}, linkGeometry = ${JSON.stringify(linkGeometry)})`);
         }
-    }
+    },
+
+    encodePointAssetOnLink: function (startMeasure: number, endMeasure: number,
+                                 linkGeometry: Point[], linkLength: number, functionalClass: number,
+                                 linkType:number, linkId: string, sideCode: number, locationSpecifier?: number) {
+        try {
+            const line = new DigiroadLine(1, linkGeometry, Math.floor(linkLength), linkType, functionalClass);
+            const [startPoint, endPoint] = getLocationReferencePoints(line, startMeasure, endMeasure);
+            const offsets = Offsets.fromValues( Math.floor(startMeasure), Math.floor(endMeasure));
+            const encoder = new BinaryEncoder();
+            const orientation = sideCodeToOpenLROrientation(sideCode);
+            const sideOfRoad = locationSpecifierToOpenLRSideOfRoad(locationSpecifier ? locationSpecifier : 99);
+            const rawLocationReference = RawPointAlongLineLocationReference.fromPointAlongLineValues(linkId, startPoint, endPoint, offsets, sideOfRoad, orientation);
+            const encodedLocationReference = encoder.encodeDataFromRLR(rawLocationReference);
+            const openLrBinary = encodedLocationReference.getLocationReferenceData();
+            if (!openLrBinary) throw new Error(`Could not form OpenLR string`);
+            return openLrBinary.toString('base64');
+        } catch (err) {
+            if (err instanceof Error) console.error(err.message);
+            throw new Error(`OpenLRException(startMeasure = ${startMeasure}, endMeasure = ${endMeasure}, linkId = ${linkId}, linkLength = ${linkLength}, functionalClass = ${functionalClass}, linkType = ${linkType}, linkGeometry = ${JSON.stringify(linkGeometry)})`);
+        }
+    },
 };
 
 /**

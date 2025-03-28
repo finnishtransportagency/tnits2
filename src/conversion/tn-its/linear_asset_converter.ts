@@ -20,13 +20,13 @@ export class LinearTnItsConverter extends AssetConverter {
         const linkLength = link.properties.length; 
         const functionalClass = link.properties.functionalClass;
         const linkType = link.properties['type'];
-
-        const isOppositeDirection = properties.sideCode === 3;
+        const sideCode = properties.sideCode;
+        const isOppositeDirection = sideCode === 3;
         const [linkGeometry, startM, endM] = isOppositeDirection ? 
             [points.reverse(), linkLength - properties.endMeasure, linkLength - properties.startMeasure] :
             [points, properties.startMeasure, properties.endMeasure]
         try {
-            return OpenLREncoder.encodeAssetOnLink(
+            return OpenLREncoder.encodeLinearAssetOnLink(
                 startM, endM, linkGeometry, linkLength, functionalClass, linkType, defaultLinkReference + link.id);
         } catch (err) {
             throw err;           
