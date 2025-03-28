@@ -101,3 +101,12 @@ export enum SideCode {
     AgainstDigitizing,
     Unknown
 }
+
+export enum LocationSpecifier {
+    Right = 1,
+    Left,
+    Above,
+    Middle,
+    AlongRoad,
+    OutsideOfRoad
+}

@@ -1,6 +1,6 @@
-import {SideCode} from "../tn-its/helper/utils";
-import { Orientation } from 'openlr-js/lib/es5/data/location/data/Orientation';
-import { SideOfRoad } from 'openlr-js/lib/es5/data/location/data/SideOfRoad';
+import {LocationSpecifier, SideCode} from "../tn-its/helper/utils";
+import {Orientation} from 'openlr-js/lib/es5/data/location/data/Orientation';
+import {SideOfRoad} from 'openlr-js/lib/es5/data/location/data/SideOfRoad';
 
 export function sideCodeToOpenLROrientation(sideCode: SideCode): Orientation {
     switch (sideCode) {
@@ -15,14 +15,12 @@ export function sideCodeToOpenLROrientation(sideCode: SideCode): Orientation {
     }
 };
 
-export function locationSpecifierToOpenLRSideOfRoad(locationSpecifier: number): SideOfRoad  {
+export function locationSpecifierToOpenLRSideOfRoad(locationSpecifier: LocationSpecifier): SideOfRoad  {
     switch (locationSpecifier) {
-        case 1:
+        case LocationSpecifier.Right:
             return SideOfRoad.RIGHT;
-        case 2:
+        case LocationSpecifier.Left:
             return SideOfRoad.LEFT;
-        case 4:
-            return SideOfRoad.BOTH;
         default:
             return SideOfRoad.ON_ROAD_OR_UNKNOWN;
     }
