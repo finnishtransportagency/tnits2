@@ -94,3 +94,19 @@ export const validityPeriodOperations = {
         }
     }
 };
+
+export enum SideCode {
+    BothDirections = 1,
+    TowardsDigitizing,
+    AgainstDigitizing,
+    Unknown
+};
+
+export enum LocationSpecifier {
+    Right = 1,
+    Left,
+    Above,
+    Middle,
+    AlongRoad,
+    OutsideOfRoad
+};
