@@ -22,8 +22,8 @@ describe('Converter: Point asset converter', function() {
         const openLr1 = converter.encodeOpenLRLocationString(change1);
         const openLr2 = converter.encodeOpenLRLocationString(change2);
 
-        assert.equal(openLr1, 'CxMqDCr+zCOcAf98AE0jbPYG');
-        assert.equal(openLr2, 'CxF5iirZbBtnAwDrAHAbduYY');
+        assert.equal(openLr1, 'KxMqDCr+zOOcAf98AE0jTPY=');
+        assert.equal(openLr2, 'KxF5iirZbJtnAwDrAHAbVuY=');
     });
 
     it('Coordinate transform to WSG84 should match', function() {
