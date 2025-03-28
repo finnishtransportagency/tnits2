@@ -20,8 +20,7 @@ export class LinearTnItsConverter extends AssetConverter {
         const linkLength = link.properties.length; 
         const functionalClass = link.properties.functionalClass;
         const linkType = link.properties['type'];
-        const sideCode = properties.sideCode;
-        const isOppositeDirection = sideCode === 3;
+        const isOppositeDirection = properties.sideCode === 3;
         const [linkGeometry, startM, endM] = isOppositeDirection ? 
             [points.reverse(), linkLength - properties.endMeasure, linkLength - properties.startMeasure] :
             [points, properties.startMeasure, properties.endMeasure]
