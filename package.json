@@ -16,7 +16,7 @@
     "node": "^20.10.0"
   },
   "dependencies": {
-    "axios": "^1.8.2",
+    "axios": "^1.11.0",
     "bytebuffer": "^5.0.1",
     "openlr-js": "^3.0.6",
     "proj4": "^2.7.2",
