@@ -13,6 +13,7 @@ RUN npm run test
 # Remove unnecessary files from image
 RUN npm prune --production
 RUN npm run post-compile
+RUN dnf upgrade
 
 # Move dist directory contents to root and remove empty directory
 RUN mv dist/* ${LAMBDA_TASK_ROOT} && rmdir dist
